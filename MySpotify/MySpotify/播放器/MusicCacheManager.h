@@ -19,8 +19,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)playStreamWithURL:(NSURL *)url songID:(NSString *)songID;
 
 /// 下载歌曲到缓存（离线播放）
-- (void)downloadSongWithURL:(NSURL *)url songID:(NSString *)songID
-                 completion:(void (^)(NSString * _Nullable filePath, NSError * _Nullable error))completion;
+- (void)downloadSongWithURL:(NSURL *)url songID:(NSString *)songID completion:(void (^)(NSString * _Nullable filePath, NSError * _Nullable error))completion;
 
 /// 判断本地缓存是否存在
 - (BOOL)isSongCached:(NSString *)songID;

@@ -246,6 +246,13 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		0D7EBE312F3D791200FF6568 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		1752D57DAFDBC3BFF377AF8C /* Pods */ = {
 			isa = PBXGroup;
 			children = (
@@ -364,6 +371,12 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0D736A2B2EBCC074008576F5 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 0D7EBE312F3D791200FF6568 /* Products */;
+					ProjectRef = 0D5BA0602F2C62960036C3AB /* Pods.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				0D736A292EBCC074008576F5 /* MySpotify */,

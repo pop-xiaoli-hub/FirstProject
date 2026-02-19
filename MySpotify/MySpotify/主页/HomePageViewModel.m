@@ -7,19 +7,20 @@
 
 #import "HomePageViewModel.h"
 #import "SpotifyService.h"
-
+#import "SongPlayingModel.h"
 @interface HomePageViewModel()
 @property (nonatomic, strong) SpotifyService *service;
 @end
 
 @implementation HomePageViewModel
 
-- (void)fetchSongData:(SongModel* )model{
+- (void)fetchSongData:(SongPlayingModel* )model{
   [self.service fetchSongResources:model completion:^(BOOL temp) {
     if (temp) {
       if (self.researchSong) {
         self.researchSong();
       }
+      NSLog(@"歌曲:%@", model.audioResources);
     }
   }];
 }

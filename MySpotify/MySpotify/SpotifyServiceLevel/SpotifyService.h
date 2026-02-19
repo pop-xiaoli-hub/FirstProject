@@ -8,7 +8,7 @@
 #import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
-@class RecommendedSongsItemModel, SongModel;
+@class RecommendedSongsItemModel, SongModel, SongPlayingModel;
 @interface SpotifyService : NSObject
 + (instancetype)sharedInstance;
 - (void)fetchRecommendedSongs:(void(^)(NSArray* arrayOfSongs, NSError* error))completion;
@@ -21,7 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)fetchSongsWithIds:(NSString *)ids completion:(void(^)(NSArray<SongModel *> *songs, NSError *error))completion;
 - (void)fetchArtistDetailWithId:(long long)artistId ompletion:(void (^)(id responseObject, NSError *error))completion;
 - (void)fetchAllCommentsOfSongs:(SongModel *)songModel offset:(NSInteger)offset limit:(NSInteger)limit withCompletion:(void(^)(id responseObject, NSError *error))completion;
-- (void)fetchSongResources:(SongModel* )model completion:(void(^)( BOOL temp))completion;
+- (void)fetchSongResources:(SongPlayingModel* )model completion:(void(^)( BOOL temp))completion;
 @end
 
 NS_ASSUME_NONNULL_END

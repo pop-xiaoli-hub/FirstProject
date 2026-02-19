@@ -6,7 +6,9 @@
 //
 
 #import "MusicPlayerManager.h"
-
+#import "PlaylistManager.h"
+#import "SongPlayingModel.h"
+#import "SpotifyService.h"
 @interface MusicPlayerManager ()
 
 
@@ -14,6 +16,7 @@
 @property (nonatomic, assign, readwrite) MusicPlayerState state;
 
 @end
+
 
 @implementation MusicPlayerManager
 
@@ -24,9 +27,60 @@
   dispatch_once(&onceToken, ^{
     manager = [[MusicPlayerManager alloc] init];
     [manager setup];
+    [[NSNotificationCenter defaultCenter] addObserver:manager selector:@selector(playerDidFinish:) name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
   });
   return manager;
 }
+
+- (void)playerDidFinish:(NSNotification *)noti {
+  NSLog(@"🎵 当前歌曲播放完成");
+
+  PlaylistManager *playlistManager = [PlaylistManager shared];
+
+  if (playlistManager.playlist.count == 0) return;
+
+  // 切到下一首
+  NSInteger nextIndex = playlistManager.currentIndex + 1;
+  if (nextIndex >= playlistManager.playlist.count) {
+    nextIndex = 0; // 播放列表循环
+  }
+
+  playlistManager.currentIndex = nextIndex;
+  SongPlayingModel* model = playlistManager.playlist[nextIndex];
+
+  if (!model.audioResources || model.audioResources.length == 0 ||[model.audioResources isEqualToString:@"null"]) {
+    long songId = model.songId;
+    SpotifyService* service = [SpotifyService sharedInstance];
+    __weak typeof(self) weakSelf = self;
+    [service fetchSongResources:model completion:^(BOOL success) {
+      if (success) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+          SongPlayingModel *current = playlistManager.playlist[playlistManager.currentIndex];
+          if (current.songId == songId) {
+            if (!model.audioResources) {
+              return;
+            }
+            NSURL *url = [NSURL URLWithString:model.audioResources];
+            if (!url) {
+              NSLog(@"非法URL: %@", model.audioResources);
+              return;
+            }
+            [weakSelf playWithURL:url];
+          }
+        });
+      }
+    }];
+  } else {
+    [self playWithURL:[NSURL URLWithString:model.audioResources]];
+  }
+
+  // 通知UI更新
+  [[NSNotificationCenter defaultCenter] postNotificationName:@"changeSong" object:nil userInfo:@{@"index": @(nextIndex)}];
+
+  // 通知按钮状态为播放态
+  [[NSNotificationCenter defaultCenter] postNotificationName:@"pressButton" object:nil userInfo:@{@"isPressed": @(1)}];
+}
+
 
 /*
  获取iOS对音频硬件的总开关，实现后台播放，激活音频会话
@@ -42,6 +96,7 @@
 
 
 - (void)playWithURL:(NSURL *)url {
+  self.currentURL = url;
   if (!url) {
     return;
   }

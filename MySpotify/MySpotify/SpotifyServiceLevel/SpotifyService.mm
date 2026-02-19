@@ -21,6 +21,9 @@
 #import "CommentListResponseModel.h"
 #import "CommentModel.h"
 #import "CommentUserModel.h"
+#import "SongDBModel.h"
+#import "SongDBModel+WCTTableCoding.h"
+#import "SongPlayingModel.h"
 @implementation SpotifyService
 +(instancetype)sharedInstance {
   static SpotifyService* service;
@@ -47,10 +50,10 @@
   }];
 }
 
-- (void)fetchSongResources:(SongModel* )model completion:(void(^)( BOOL temp))completion {
+- (void)fetchSongResources:(SongPlayingModel* )model completion:(void(^)( BOOL temp))completion {
   NetworkManager* manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
-  NSString* url = [NSString stringWithFormat: @"http://localhost:3000/song/url/v1?id=%lld&level=standard", model.id];
+  NSString* url = [NSString stringWithFormat: @"http://localhost:3000/song/url/v1?id=%ld&level=standard", model.songId];
   [manager GET:url parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id _Nullable responseObject) {
     NSArray *dataArray = responseObject[@"data"];
     if (dataArray.count > 0) {

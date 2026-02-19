@@ -19,6 +19,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface MusicPlayerManager : NSObject
 @property (nonatomic, strong) AVPlayer *player;
+@property (nonatomic, strong) NSURL *currentURL;
 + (instancetype)sharedManager;
 - (void)playWithURL:(NSURL *)url;
 

@@ -2557,6 +2557,11 @@
 			path = "Target Support Files/Pods-MySpotify";
 			sourceTree = "<group>";
 		};
+		0D7EBE2F2F3D791200FF6568 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
 		0E67C2156CA1BF9765384443FD85BECC /* NSURLSession */ = {
 			isa = PBXGroup;
 			children = (
@@ -4819,6 +4824,12 @@
 			mainGroup = CF1408CF629C7361332E53B88F7BD30C;
 			productRefGroup = 236FE07DEEBAF1E9DFBDC08EC9FED055 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 0D7EBE2F2F3D791200FF6568 /* Products */;
+					ProjectRef = 0D5BA0632F2C62990036C3AB /* Pods.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				0130B3724283586C0E9D2A112D4F2AA1 /* AFNetworking */,

@@ -10,6 +10,7 @@
 #import "LocalDownloadSongs.h"
 #import "DownloadTableViewCell.h"
 #import "DownloadTableHeaderView.h"
+#import "PlaylistManager.h"
 @interface DownloadViewController ()<UITableViewDelegate, UITableViewDataSource>
 @property (nonatomic, strong)UIImageView* backView;
 @property (nonatomic, strong)UIVisualEffectView* blurView;
@@ -25,7 +26,12 @@
   [super viewDidLoad];
   [self setBackgroudView];
   [self fetchDataFromDatabase];
+  [self.headerView.buttonOfPlayAllSongs addTarget:self action:@selector(playAllSongs:) forControlEvents:UIControlEventTouchUpInside];
     // Do any additional setup after loading the view.
+}
+
+- (void)playAllSongs:(UIButton* )button {
+  
 }
 
 - (void)fetchDataFromDatabase {
@@ -34,6 +40,7 @@
   self.downloadedSongs = [NSMutableArray arrayWithArray:array];
   for (LocalDownloadSongs* song in array) {
     NSLog(@"name:%@", song.songName);
+    NSLog(@"歌曲路径：%@", song.localPath);
   }
   [self createTableView];
   self.headerView = [[DownloadTableHeaderView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 140)];

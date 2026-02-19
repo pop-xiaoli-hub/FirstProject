@@ -32,6 +32,7 @@
 #import "SongDBModel+WCTTableCoding.h"
 #import "SpotifyService.h"
 #import "SongPlayingModel.h"
+#import "PLaylistManager.h"
 //@class DetailMusicPlayerView,MusicPlayerView;
 @interface CAAnimationGroup (Completion)
 @property (nonatomic, copy) void (^completion)(BOOL finished);
@@ -71,20 +72,20 @@
 @property (nonatomic, strong)AVPlayerItem* item;
 @property (nonatomic, strong)SongPlayingModel* currentSongModel;
 @property (nonatomic, strong)FloatingPlayerView* floatingPlayerView;
-@property (nonatomic, assign)NSInteger currentPlayIndex;
+//@property (nonatomic, assign)NSInteger currentPlayIndex;
 @property (nonatomic, strong)UIAlertController* alertController;
 @property (nonatomic, strong) PopupTransitionDelegate *popupDelegate;
-@property (nonatomic, strong)NSMutableArray* playList;
+//@property (nonatomic, strong)NSMutableArray* playList;
 @end
 
 @implementation HomePageController
 
 - (void)viewDidLoad {
   [super viewDidLoad];
-  self.currentPlayIndex = 0;
+  // self.currentPlayIndex = 0;
   self.flag = 0;
   self.buttonOfAllIsSelected = YES;
-  self.playList = [NSMutableArray array];
+  //self.playList = [NSMutableArray array];
   self.view.backgroundColor = [UIColor blackColor];
   self.myView = [[HomePageView alloc] initWithFrame:[UIScreen mainScreen].bounds];
   [self.view addSubview:self.myView];
@@ -134,49 +135,87 @@
       [weakSelf.floatingPlayerView createPlayerView];
       [weakSelf fetchSongDataFromDataBase];
     }
-//    [UIView animateWithDuration:0.3 animations:^{
+    //    [UIView animateWithDuration:0.3 animations:^{
     weakSelf.floatingPlayerView.trackHeaderView.userInteractionEnabled = YES;
     UITapGestureRecognizer* tap = [[UITapGestureRecognizer alloc] initWithTarget:weakSelf action:@selector(jumpToPlayerViewController)];
     tap.numberOfTapsRequired = 1;
     tap.numberOfTouchesRequired = 1;
     [weakSelf.floatingPlayerView.trackHeaderView addGestureRecognizer:tap];
     [weakSelf.floatingPlayerView.buttonOfPlayerSwitches addTarget:weakSelf action:@selector(pressPlayerSwitches:) forControlEvents:UIControlEventTouchUpInside];
-//      RecommendedSongsItemModel* item = [weakSelf.viewModel.arrayOfSomeRecommendedSongs objectAtIndex:0];
-//      SongModel* songModel = item.song;
-//      AlbumModel* albumModel = songModel.album;
-//      NSLog(@"12345%@", songModel.audioResources);
-//      weakSelf.currentSongModel = songModel;
-//      //weakSelf.myView.trackHeaderView.image = songModel.image;
-//      SDImageResizingTransformer *transformer =
-//      [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
-//      [weakSelf.floatingPlayerView.trackHeaderView sd_setImageWithURL:[NSURL URLWithString:albumModel.picUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
-//        SDWebImageContextImageTransformer: transformer, SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200,200)), SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
-//      }];
-//      weakSelf.floatingPlayerView.trackNameLabel.text = [songModel.name copy];
-//      ArtistModel* artist = [songModel.artists objectAtIndex:0];
-//      weakSelf.floatingPlayerView.trackArtistNameLabel.text = [artist.name copy];
-//    }];
+    //      RecommendedSongsItemModel* item = [weakSelf.viewModel.arrayOfSomeRecommendedSongs objectAtIndex:0];
+    //      SongModel* songModel = item.song;
+    //      AlbumModel* albumModel = songModel.album;
+    //      NSLog(@"12345%@", songModel.audioResources);
+    //      weakSelf.currentSongModel = songModel;
+    //      //weakSelf.myView.trackHeaderView.image = songModel.image;
+    //      SDImageResizingTransformer *transformer =
+    //      [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
+    //      [weakSelf.floatingPlayerView.trackHeaderView sd_setImageWithURL:[NSURL URLWithString:albumModel.picUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
+    //        SDWebImageContextImageTransformer: transformer, SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200,200)), SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
+    //      }];
+    //      weakSelf.floatingPlayerView.trackNameLabel.text = [songModel.name copy];
+    //      ArtistModel* artist = [songModel.artists objectAtIndex:0];
+    //      weakSelf.floatingPlayerView.trackArtistNameLabel.text = [artist.name copy];
+    //    }];
   };
   self.viewModel.endRefreshing = ^{
     [weakSelf.refreshControl endRefreshing];
     [weakSelf.activityIndicator stopAnimating];
     weakSelf.myView.tableView.userInteractionEnabled = YES;
   };
+  self.viewModel.researchSong = ^{
+    [weakSelf playSong:weakSelf.floatingPlayerView.buttonOfPlayerSwitches];
+  };
   [self.viewModel loadHomePageData];
   [self.myView.buttonOfExpand addTarget:self action:@selector(expandMenuOptions:) forControlEvents:UIControlEventTouchUpInside];
   [self.myView.buttonOfSongs addTarget:self action:@selector(pressButtonOfSongs:) forControlEvents:UIControlEventTouchUpInside];
   [self.myView.tableView reloadData];
+
+  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(upDateFloatingView:) name:@"changeSong" object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(upDateSwitchButton:) name:@"pressButton" object:nil];
+
 }
 
+- (void)upDateFloatingView:(NSNotification* )notification {
+  NSDictionary* dict = notification.userInfo;
+  NSInteger index = [dict[@"index"] integerValue];
+  PlaylistManager* manager = [PlaylistManager shared];
+  manager.currentIndex = index;
+  SongPlayingModel* model = manager.playlist[index];
+  self.currentSongModel = model;
+  self.floatingPlayerView.trackArtistNameLabel.text = [model.artistName copy];
+  self.floatingPlayerView.trackNameLabel.text = [model.name copy];
+  SDImageResizingTransformer *transformer =
+  [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
+  [self.floatingPlayerView.trackHeaderView sd_setImageWithURL:[NSURL URLWithString:model.headerUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
+    SDWebImageContextImageTransformer: transformer, SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200,200)), SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
+  }];
+}
+
+- (void)upDateSwitchButton:(NSNotification* )notification {
+  NSDictionary* dict = notification.userInfo;
+  NSInteger temp = [dict[@"isPressed"] integerValue];
+  self.floatingPlayerView.buttonOfPlayerSwitches.selected = temp;
+}
+
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:@"changeSong" object:nil];
+  [[NSNotificationCenter defaultCenter] removeObserver:self name:@"pressButton" object:nil];
+}
+
+
+
 - (void)fetchSongDataFromDataBase {
-  DBManager* manager = [DBManager shared];
-  NSArray* array = [manager queryAllSongs];
+  DBManager* dbManager = [DBManager shared];
+  PlaylistManager* playlistManager = [PlaylistManager shared];
+  NSArray* array = [dbManager queryAllSongs];
   for (int i = 0; i < array.count; i++) {
     SongDBModel* dbModel = array[i];
-    SongPlayingModel* playingModel = [[SongPlayingModel alloc] initWithSongName:dbModel.songName andArtistName:dbModel.artistName andSongId:dbModel.songId andPicUrl:dbModel.picUrl andMusicSource:@""];
-    [self.playList addObject:playingModel];
+    SongPlayingModel* playingModel = [[SongPlayingModel alloc] initWithSongName:dbModel.songName andArtistName:dbModel.artistName andSongId:dbModel.songId andPicUrl:dbModel.picUrl andMusicSource:@"null" andIsDownloaded:NO];
+    [playlistManager.playlist addObject:playingModel];
   }
-  self.currentSongModel = [self.playList objectAtIndex:self.currentPlayIndex];
+  self.currentSongModel = [playlistManager.playlist objectAtIndex:playlistManager.currentIndex];
   SDImageResizingTransformer *transformer =
   [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
   [self.floatingPlayerView.trackHeaderView sd_setImageWithURL:[NSURL URLWithString:self.currentSongModel.headerUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
@@ -184,14 +223,22 @@
   }];
   self.floatingPlayerView.trackNameLabel.text = [self.currentSongModel.name copy];
   self.floatingPlayerView.trackArtistNameLabel.text = [self.currentSongModel.name copy];
-//  self.playList = [NSMutableArray arrayWithArray:array];
-//  SongDBModel* dbSong = self.playList[self.currentPlayIndex];
-//  SongModel* song = [SongModel new];
-//  song.id = dbSong.songId;
-//  song.name = [dbSong.songName copy];
-//  song.picUrl = [dbSong.picUrl copy];
-//  song.artistName = [dbSong.artistName copy];
-//  [self.viewModel fetchSongData:song];
+  //  self.playList = [NSMutableArray arrayWithArray:array];
+  //  SongDBModel* dbSong = self.playList[self.currentPlayIndex];
+  //  SongModel* song = [SongModel new];
+  //  song.id = dbSong.songId;
+  //  song.name = [dbSong.songName copy];
+  //  song.picUrl = [dbSong.picUrl copy];
+  //  song.artistName = [dbSong.artistName copy];
+  //  [self.viewModel fetchSongData:song];
+}
+
+- (void)playSong:(UIButton* )button {
+  PlaylistManager* manager = [PlaylistManager shared];
+  SongPlayingModel* model = [manager.playlist objectAtIndex:manager.currentIndex];
+  NSURL* url = [NSURL URLWithString:model.audioResources];
+  MusicPlayerManager* playManager = [MusicPlayerManager sharedManager];
+  [playManager playWithURL:url];
 }
 
 
@@ -202,13 +249,14 @@
     [UIView animateWithDuration:0.1 animations:^{
       self.floatingPlayerView.blurView.transform = CGAffineTransformIdentity;
       MusicPlayerController* vc = [[MusicPlayerController alloc] init];
-      vc.musicPlayList = self.playList;
-      vc.currentIndex = self.currentPlayIndex;
-//      vc.player = self.player;
-//      vc.item = self.item;
+      PlaylistManager* manager = [PlaylistManager shared];
+      vc.musicPlayList = manager.playlist;
+      vc.currentIndex = manager.currentIndex;
+      //      vc.player = self.player;
+      //      vc.item = self.item;
 
       vc.isplaying = self.floatingPlayerView.buttonOfPlayerSwitches.selected;
-     //[vc pressButtonOfSwitch:vc.myView.centerPage.switchButton];
+      //[vc pressButtonOfSwitch:vc.myView.centerPage.switchButton];
       [self presentViewController:vc animated:YES completion:nil];
     }];
   }];
@@ -236,14 +284,19 @@
 
 - (void)pressPlayerSwitches:(UIButton* )button {
   button.selected = !button.selected;
-  SongPlayingModel* songModel = self.currentSongModel;
-  NSLog(@"当前播放歌曲名称：%@", songModel.name);
-  if (button.selected) {
-    [self play];
-    NSLog(@"开始播放音乐");
+  PlaylistManager* manager = [PlaylistManager shared];
+  SongPlayingModel* model = manager.playlist[manager.currentIndex];
+  if ([model.audioResources isEqualToString:@"null"]) {
+    [self.viewModel fetchSongData:manager.playlist[manager.currentIndex]];
   } else {
-    [self pause];
-    NSLog(@"停止播放音乐");
+    NSLog(@"当前播放歌曲名称：%@", model.name);
+    if (button.selected) {
+      [self play];
+      NSLog(@"开始播放音乐");
+    } else {
+      [self pause];
+      NSLog(@"停止播放音乐");
+    }
   }
 }
 
@@ -338,13 +391,12 @@
 
 
 - (void)play {
-//  [self.player play];
   MusicPlayerManager* manager = [MusicPlayerManager sharedManager];
   [manager play];
 }
 
 - (void)pause {
- // [self.player pause];
+  // [self.player pause];
   MusicPlayerManager* manager = [MusicPlayerManager sharedManager];
   [manager pause];
 }
@@ -421,41 +473,44 @@
         self.floatingPlayerView.blurView.transform = CGAffineTransformIdentity;
       }];
     }];
-//    RecommendedSongsItemModel* item = [self.viewModel.arrayOfSomeRecommendedSongs objectAtIndex:indexPath.row];
-//    SongModel* songModel = item.song;
-//    self.currentSongModel = songModel;
-//    NSURL* url = [NSURL URLWithString:songModel.audioResources];
-////    self.item = [AVPlayerItem playerItemWithURL:url];
-////    self.player = [AVPlayer playerWithPlayerItem:self.item];
-//    MusicPlayerManager* manager = [MusicPlayerManager sharedManager];
-//    [manager playWithURL:url];
-//    self.floatingPlayerView.trackNameLabel.text = songModel.name;
-//    ArtistModel* artist = [songModel.artists objectAtIndex:0];
-//    AlbumModel* albumModel = songModel.album;
-//    self.floatingPlayerView.trackArtistNameLabel.text = [artist.name copy];
-//    self.floatingPlayerView.buttonOfPlayerSwitches.selected = NO;
-//    [self pressPlayerSwitches:self.floatingPlayerView.buttonOfPlayerSwitches];
-//    SDImageResizingTransformer *transformer =
-//    [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
-//    [self.floatingPlayerView.trackHeaderView sd_setImageWithURL:[NSURL URLWithString:albumModel.picUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
-//      SDWebImageContextImageTransformer: transformer, SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200,200)), SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
-//    }];
+    //    RecommendedSongsItemModel* item = [self.viewModel.arrayOfSomeRecommendedSongs objectAtIndex:indexPath.row];
+    //    SongModel* songModel = item.song;
+    //    self.currentSongModel = songModel;
+    //    NSURL* url = [NSURL URLWithString:songModel.audioResources];
+    ////    self.item = [AVPlayerItem playerItemWithURL:url];
+    ////    self.player = [AVPlayer playerWithPlayerItem:self.item];
+    //    MusicPlayerManager* manager = [MusicPlayerManager sharedManager];
+    //    [manager playWithURL:url];
+    //    self.floatingPlayerView.trackNameLabel.text = songModel.name;
+    //    ArtistModel* artist = [songModel.artists objectAtIndex:0];
+    //    AlbumModel* albumModel = songModel.album;
+    //    self.floatingPlayerView.trackArtistNameLabel.text = [artist.name copy];
+    //    self.floatingPlayerView.buttonOfPlayerSwitches.selected = NO;
+    //    [self pressPlayerSwitches:self.floatingPlayerView.buttonOfPlayerSwitches];
+    //    SDImageResizingTransformer *transformer =
+    //    [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
+    //    [self.floatingPlayerView.trackHeaderView sd_setImageWithURL:[NSURL URLWithString:albumModel.picUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
+    //      SDWebImageContextImageTransformer: transformer, SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200,200)), SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
+    //    }];
+    PlaylistManager* playlistManager = [PlaylistManager shared];
     RecommendedSongsItemModel* item = [self.viewModel.arrayOfSomeRecommendedSongs objectAtIndex:indexPath.row];
     SongModel* song = item.song;
     ArtistModel* artist = [song.artists objectAtIndex:0];
     AlbumModel* album = song.album;
-    SongPlayingModel* songModel = [[SongPlayingModel alloc] initWithSongName:song.name andArtistName:artist.name andSongId:song.id andPicUrl:album.picUrl andMusicSource:song.audioResources];
+    SongPlayingModel* songModel = [[SongPlayingModel alloc] initWithSongName:song.name andArtistName:artist.name andSongId:song.id andPicUrl:album.picUrl andMusicSource:song.audioResources andIsDownloaded:NO];
     self.currentSongModel = songModel;
-    for (int i = 0; i < self.playList.count; i++) {
-      SongPlayingModel* modelTemp = self.playList[i];
+    for (int i = 0; i < playlistManager.playlist.count; i++) {
+      SongPlayingModel* modelTemp = playlistManager.playlist[i];
       if (modelTemp.songId == songModel.songId) {
-        [self.playList removeObject:modelTemp];
+        [playlistManager.playlist removeObject:modelTemp];
       }
     }
-    [self.playList insertObject:songModel atIndex:0];
+    NSLog(@"当前序号：%ld", playlistManager.currentIndex);
+    [playlistManager.playlist insertObject:songModel atIndex:0];
     NSURL* url = [NSURL URLWithString:songModel.audioResources];
     MusicPlayerManager* manager = [MusicPlayerManager sharedManager];
     [manager playWithURL:url];
+    playlistManager.currentIndex = 0;
     self.floatingPlayerView.trackNameLabel.text = songModel.name;
     self.floatingPlayerView.trackArtistNameLabel.text = [songModel.name copy];
     self.floatingPlayerView.buttonOfPlayerSwitches.selected = NO;
@@ -490,7 +545,7 @@
       [self.alertController addAction:action];
       [self presentViewController:self.alertController animated:YES completion:^{}];
     }
-    self.currentPlayIndex = indexPath.row;
+    //   self.currentPlayIndex = indexPath.row;
     NSLog(@"hello,按钮动画代理方法触发");
     [self triggerAnimation:cell withIndexPath:indexPath];
   } else  if ([reuseIdentifier isEqualToString:@"album"]){
@@ -579,8 +634,8 @@
 }
 
 - (void)viewWillAppear:(BOOL)animated {
-    [super viewWillAppear:animated];
-    [self.navigationController setNavigationBarHidden:YES animated:NO];
+  [super viewWillAppear:animated];
+  [self.navigationController setNavigationBarHidden:YES animated:NO];
 }
 
 /*

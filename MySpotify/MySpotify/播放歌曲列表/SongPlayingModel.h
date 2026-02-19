@@ -15,7 +15,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy)NSString* headerUrl;
 @property (nonatomic, copy)NSString *name;
 @property (nonatomic, copy)NSString* audioResources;
-- (instancetype)initWithSongName:(NSString* )songName andArtistName:(NSString* )artistName andSongId:(long)id andPicUrl:(NSString* )picUrl andMusicSource:(NSString* )resource;
+@property (nonatomic, assign)BOOL isDownload;
+- (instancetype)initWithSongName:(NSString* )songName andArtistName:(NSString* )artistName andSongId:(long)id andPicUrl:(NSString* )picUrl andMusicSource:(NSString* )resource andIsDownloaded:(BOOL)isDownload;
 @end
 
 NS_ASSUME_NONNULL_END

@@ -8,7 +8,7 @@
 #import <Foundation/Foundation.h>
 NS_ASSUME_NONNULL_BEGIN
 
-@class SongModel;
+@class SongModel, SongPlayingModel;
 @interface HomePageViewModel : NSObject
 
 @property (nonatomic, strong) NSMutableArray *arrayOfSomeRecommendedSongs;
@@ -21,7 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)loadHomePageData;
 - (void)refreshData;
-- (void)fetchSongData:(SongModel* )model;
+- (void)fetchSongData:(SongPlayingModel* )model;
 
 @end
 
