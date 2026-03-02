@@ -9,6 +9,9 @@
 #import "PlaylistManager.h"
 #import "SongPlayingModel.h"
 #import "SpotifyService.h"
+#import "SongDBModel+WCTTableCoding.h"
+#import "SongDBModel.h"
+#import "DBManager.h"
 @interface MusicPlayerManager ()
 
 
@@ -33,12 +36,9 @@
 }
 
 - (void)playerDidFinish:(NSNotification *)noti {
-  NSLog(@"🎵 当前歌曲播放完成");
-
+  NSLog(@" 当前歌曲播放完成");
   PlaylistManager *playlistManager = [PlaylistManager shared];
-
   if (playlistManager.playlist.count == 0) return;
-
   // 切到下一首
   NSInteger nextIndex = playlistManager.currentIndex + 1;
   if (nextIndex >= playlistManager.playlist.count) {
@@ -65,18 +65,17 @@
               NSLog(@"非法URL: %@", model.audioResources);
               return;
             }
-            [weakSelf playWithURL:url];
+            [weakSelf playWithSong:model];
           }
         });
       }
     }];
   } else {
-    [self playWithURL:[NSURL URLWithString:model.audioResources]];
+    //[self playWithURL:[NSURL URLWithString:model.audioResources]];
+    [self playWithSong:model];
   }
-
   // 通知UI更新
   [[NSNotificationCenter defaultCenter] postNotificationName:@"changeSong" object:nil userInfo:@{@"index": @(nextIndex)}];
-
   // 通知按钮状态为播放态
   [[NSNotificationCenter defaultCenter] postNotificationName:@"pressButton" object:nil userInfo:@{@"isPressed": @(1)}];
 }
@@ -95,7 +94,46 @@
 }
 
 
-- (void)playWithURL:(NSURL *)url {
+//- (void)playWithURL:(NSURL *)url {
+//  self.currentURL = url;
+//  if (!url) {
+//    return;
+//  }
+//  [self stop];
+//  AVPlayerItem *item = [AVPlayerItem playerItemWithURL:url];
+//  self.currentItem = item;
+//
+//  [item addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nil];
+//  [self.player replaceCurrentItemWithPlayerItem:item];
+//  self.state = MusicPlayerStateBuffering;
+//}
+
+- (void)playWithSong:(SongPlayingModel *)song {
+  DBManager* manager = [DBManager shared];
+  SongDBModel* songDBModel = [[SongDBModel alloc] init];
+  songDBModel.songName = song.name;
+  songDBModel.artistName = song.artistName;
+  songDBModel.picUrl = song.headerUrl;
+  songDBModel.songId = song.songId;
+  songDBModel.isCompleted = NO;
+  songDBModel.cacheSize = 0;
+  songDBModel.totalSize = 0;
+  [manager createTable:songDBModel];
+  [manager insert:songDBModel];
+  NSURL* url = nil;
+  if (!song.isDownload) {
+    url = [NSURL URLWithString:song.audioResources];
+  }
+  if (song.isDownload) {
+    NSString *docDir = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+    NSString *fullPath = [docDir stringByAppendingPathComponent:song.audioResources]; // 动态生成绝对路径
+    url = [NSURL fileURLWithPath:fullPath];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:fullPath]) {
+      NSLog(@"文件存在，可以播放");
+    } else {
+      NSLog(@"文件不存在，无法播放");
+    }
+  }
   self.currentURL = url;
   if (!url) {
     return;
@@ -107,6 +145,11 @@
   [item addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nil];
   [self.player replaceCurrentItemWithPlayerItem:item];
   self.state = MusicPlayerStateBuffering;
+
+  NSLog(@"audioResources = %@", song.audioResources);
+  NSLog(@"url = %@", url);
+  NSLog(@"isFileURL = %d", url.isFileURL);
+  NSLog(@"file exists = %d", [[NSFileManager defaultManager] fileExistsAtPath:url.path]);
 }
 
 - (void)play {
@@ -185,6 +228,19 @@
 
 - (void)dealloc {
   [self stop];
+}
+
+- (NSURL *)localAudioURL:(NSString *)fileName {
+  if (!fileName.length) return nil;
+  NSString *doc = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+  NSString *audioDir = [doc stringByAppendingPathComponent:@"audio"];
+  NSString *fullPath = [audioDir stringByAppendingPathComponent:fileName];
+  if (![[NSFileManager defaultManager] fileExistsAtPath:fullPath]) {
+    NSLog(@"❌ 本地文件不存在: %@", fullPath);
+    return nil;
+  }
+
+  return [NSURL fileURLWithPath:fullPath];
 }
 
 @end

@@ -8,9 +8,12 @@
 #import "DownloadViewController.h"
 #import "DBManager.h"
 #import "LocalDownloadSongs.h"
+#import "LocalDownloadSongs+WCTTableCoding.h"
 #import "DownloadTableViewCell.h"
 #import "DownloadTableHeaderView.h"
 #import "PlaylistManager.h"
+#import "SongPlayingModel.h"
+#import "MusicPlayerManager.h"
 @interface DownloadViewController ()<UITableViewDelegate, UITableViewDataSource>
 @property (nonatomic, strong)UIImageView* backView;
 @property (nonatomic, strong)UIVisualEffectView* blurView;
@@ -27,11 +30,82 @@
   [self setBackgroudView];
   [self fetchDataFromDatabase];
   [self.headerView.buttonOfPlayAllSongs addTarget:self action:@selector(playAllSongs:) forControlEvents:UIControlEventTouchUpInside];
+  [self.headerView.buttonOfSelectSongs addTarget:self action:@selector(deleteSongs:) forControlEvents:UIControlEventTouchUpInside];
     // Do any additional setup after loading the view.
 }
 
+- (void)deleteSongs:(UIButton*) button {
+  button.selected = !button.selected;
+  if (button.selected) {
+    [self.tableView setEditing:YES animated:YES];
+  } else {
+    [self.tableView setEditing:NO animated:YES];
+  }
+}
+
+- (void)deleteSelectedRows {
+    // 获取选中的 indexPath
+    NSArray<NSIndexPath *> *selectedRows = [self.tableView indexPathsForSelectedRows];
+    if (selectedRows.count == 0) {
+        NSLog(@"没有选中任何行");
+        return;
+    }
+    // 按照逆序删除，避免索引混乱
+  NSArray *sortedRows = [selectedRows sortedArrayUsingComparator:^NSComparisonResult(NSIndexPath *obj1, NSIndexPath *obj2) {
+      if (obj2.row > obj1.row) return NSOrderedDescending;
+      if (obj2.row < obj1.row) return NSOrderedAscending;
+      return NSOrderedSame;
+  }];
+    // 从数据源删除对应的数据
+    for (NSIndexPath *indexPath in sortedRows) {
+        [self.downloadedSongs removeObjectAtIndex:indexPath.row];
+    }
+    // 从表格删除对应行
+    [self.tableView deleteRowsAtIndexPaths:sortedRows withRowAnimation:UITableViewRowAnimationAutomatic];
+}
+
+
+
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+  if(tableView.isEditing) {
+    return;
+  }
+  PlaylistManager* listManager = [PlaylistManager shared];
+  listManager.currentIndex = indexPath.row;
+  LocalDownloadSongs* localSong = [self.downloadedSongs objectAtIndex:indexPath.row];
+  SongPlayingModel* playingSong = [[SongPlayingModel alloc] initWithSongName:localSong.songName andArtistName:localSong.artistName andSongId:localSong.songId andPicUrl:localSong.picUrl andMusicSource:localSong.localPath andIsDownloaded:YES];
+  for (int i = 0; i < listManager.playlist.count; i++) {
+    SongPlayingModel* model = [listManager.playlist objectAtIndex:i];
+    if (model.songId == playingSong.songId) {
+      [listManager.playlist removeObject:model];
+    }
+    NSLog(@"name: %@", model.name);
+  }
+  [listManager.playlist insertObject:playingSong atIndex:0];
+  [[MusicPlayerManager sharedManager] playWithSong:playingSong];
+  [[NSNotificationCenter defaultCenter] postNotificationName:@"playDownloadSong" object:nil userInfo:@{
+      @"index" : @(0),
+      @"type" : @"download"
+  }];
+}
+
 - (void)playAllSongs:(UIButton* )button {
-  
+  MusicPlayerManager* playManager = [MusicPlayerManager sharedManager];
+  [playManager stop];
+  PlaylistManager* listManager = [PlaylistManager shared];
+  [listManager.playlist removeAllObjects];
+  for (int i = 0; i < self.downloadedSongs.count; i++) {
+    LocalDownloadSongs* localSong = self.downloadedSongs[i];
+    SongPlayingModel* playingModel = [[SongPlayingModel alloc] initWithSongName:localSong.songName andArtistName:localSong.artistName andSongId:localSong.songId andPicUrl:localSong.picUrl andMusicSource:localSong.localPath andIsDownloaded:YES];
+    [listManager.playlist addObject:playingModel];
+  }
+  listManager.currentIndex = 0;
+  [playManager playWithSong:[listManager.playlist objectAtIndex:listManager.currentIndex]];
+  NSDictionary* userInfo = @{
+    @"isPressed" : @(YES)
+  };
+  [[NSNotificationCenter defaultCenter] postNotificationName:@"playLocalSong" object:nil userInfo:userInfo];
 }
 
 - (void)fetchDataFromDatabase {
@@ -61,6 +135,7 @@
   self.tableView.dataSource = self;
   self.tableView.delegate = self;
   self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+  self.tableView.allowsMultipleSelectionDuringEditing = YES;
   [self.tableView registerClass:[DownloadTableViewCell class] forCellReuseIdentifier:@"cellOfSongs"];
   [self.view addSubview:self.tableView];
 }
@@ -70,7 +145,12 @@
   [cell configWithSong:[self.downloadedSongs objectAtIndex:indexPath.row]];
   cell.backgroundColor = [UIColor clearColor];
   cell.selectionStyle = UITableViewCellSelectionStyleNone;
+  [cell.moreButton addTarget:self action:@selector(pressMore:) forControlEvents:UIControlEventTouchUpInside];
   return cell;
+}
+
+- (void)pressMore:(UIButton* )button {
+  
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {

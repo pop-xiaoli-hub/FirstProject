@@ -10,6 +10,8 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface DownloadTableViewCell : UITableViewCell
+@property (nonatomic, strong)UIButton* moreButton;
+@property (nonatomic, copy)void(^clickMore)(NSInteger index);
 - (void)configWithSong:(LocalDownloadSongs *)song;
 @end
 

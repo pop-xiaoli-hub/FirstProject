@@ -36,6 +36,10 @@
     _artistLabel.font = [UIFont systemFontOfSize:13];
     [self.contentView addSubview:_artistLabel];
 
+    _moreButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    [_moreButton setImage:[[UIImage imageNamed:@"selectImage.png"] imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal] forState:UIControlStateNormal];
+    [self.contentView addSubview:_moreButton];
+
     [_nameLabel mas_makeConstraints:^(MASConstraintMaker *make) {
       make.top.equalTo(self.contentView).offset(10);
       make.left.right.equalTo(self.contentView).inset(16);
@@ -45,6 +49,12 @@
       make.top.equalTo(_nameLabel.mas_bottom).offset(4);
       make.left.right.equalTo(_nameLabel);
       make.bottom.equalTo(self.contentView).offset(-10);
+    }];
+
+    [_moreButton mas_makeConstraints:^(MASConstraintMaker *make) {
+          make.right.equalTo(self.contentView.mas_right).offset(-20);
+          make.height.mas_equalTo(30);
+          make.centerY.equalTo(self.contentView.mas_centerY);
     }];
   }
   return self;
@@ -63,8 +73,12 @@
 
 - (void)setSelected:(BOOL)selected animated:(BOOL)animated {
     [super setSelected:selected animated:animated];
+    // 不要修改背景色，这样左侧圆圈被选中时整行不会高亮
+}
 
-    // Configure the view for the selected state
+- (void)setEditing:(BOOL)editing animated:(BOOL)animated {
+    [super setEditing:editing animated:animated];
+    // 可以在这里显示/隐藏自定义勾选图标，如果你有自己的 UI
 }
 
 @end

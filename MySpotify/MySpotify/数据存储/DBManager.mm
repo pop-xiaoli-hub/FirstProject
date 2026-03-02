@@ -86,6 +86,85 @@
     return result;
 }
 
+- (void)cleanCacheWithMaxSize:(long long)maxSize {
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+
+  });
+}
+
 
 
 @end
+
+/*
+ - (void)cleanCacheWithMaxSize:(long long)maxSize {
+     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+         WCTDatabase *db = [[NLDataBaseManager sharedManager] database];
+         // 把账本全拿出来
+         NSArray<NLAudioCacheInfo *> *allInfos = [db getObjectsOfClass:NLAudioCacheInfo.class fromTable:kAudioCacheTableName];
+         long long currentSize = 0;
+         for (NLAudioCacheInfo *info in allInfos) {
+             currentSize += info.totalLength;
+         }
+         if (currentSize <= maxSize) {
+             return;
+         }
+         NSLog(@"[缓存清理] 账本总计 %lld MB, 超出限制 %lld MB，触发 LRU 清理缓存机制", currentSize / 1024 / 1024, maxSize / 1024 / 1024);
+
+         // 按最后访问时间排序，最老的在前面
+         NSArray<NLAudioCacheInfo *> *sortedInfos = [allInfos sortedArrayUsingComparator:^NSComparisonResult(NLAudioCacheInfo *obj1, NLAudioCacheInfo *obj2) {
+             if (obj1.lastAccessTime < obj2.lastAccessTime) return NSOrderedAscending;
+             if (obj1.lastAccessTime > obj2.lastAccessTime) return NSOrderedDescending;
+             return NSOrderedSame;
+         }];
+         // 开始清理老旧文件
+         for (NLAudioCacheInfo *info in sortedInfos) {
+             NSString *md5 = info.urlMD5;
+             // 依然在它的专属队列里杀，防止错杀
+             dispatch_sync([self queueForMD5:md5], ^{
+                 NSString *tmpPath = [self.cacheDirectory stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.tmp", md5]];
+                 NSString *mp3Path = [self.cacheDirectory stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.mp3", md5]];
+
+                 BOOL deleted = NO;
+                 if ([[NSFileManager defaultManager] fileExistsAtPath:mp3Path]) {
+                     [[NSFileManager defaultManager] removeItemAtPath:mp3Path error:nil];
+                     deleted = YES;
+                 } else if ([[NSFileManager defaultManager] fileExistsAtPath:tmpPath]) {
+                     [[NSFileManager defaultManager] removeItemAtPath:tmpPath error:nil];
+                     deleted = YES;
+                 }
+                 if (deleted) {
+                     // 文件删了，账本也撕掉
+                     [db deleteFromTable:kAudioCacheTableName where:NLAudioCacheInfo.urlMD5 == md5];
+                     NSLog(@"[缓存清理] 剔除了老旧文件 %@，释放了 %lld 空间", md5, info.totalLength);
+                 }
+             });
+             // 直接减去账本里记录的大小
+             currentSize -= info.totalLength;
+             if (currentSize <= maxSize) break; // 达标了，停止杀戮
+         }
+     });
+ }
+
+ - (void)clearAllCache {
+     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+         NSFileManager *fm = [NSFileManager defaultManager];
+         NSError *err = nil;
+         NSArray<NSString *> *contents = [fm contentsOfDirectoryAtPath:self.cacheDirectory error:&err];
+         if (err) {
+             NSLog(@"[缓存] clearAllCache 列举目录失败: %@", err.localizedDescription);
+             return;
+         }
+         for (NSString *name in contents) {
+             NSString *path = [self.cacheDirectory stringByAppendingPathComponent:name];
+             [fm removeItemAtPath:path error:nil];
+         }
+         WCTDatabase *db = [[NLDataBaseManager sharedManager] database];
+         [db deleteFromTable:kAudioCacheTableName];
+         dispatch_async(dispatch_get_main_queue(), ^{
+             [[NSNotificationCenter defaultCenter] postNotificationName:NLCacheManagerDidFinishCachingNotification object:self];
+         });
+         NSLog(@"[缓存] 已清空所有缓存");
+     });
+ }
+ */

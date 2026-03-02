@@ -188,29 +188,27 @@
 
 
 - (UIButton *)createPlayAllButton {
-    UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
-    btn.layer.cornerRadius = 22;
-    btn.clipsToBounds = YES;
-    btn.backgroundColor = [UIColor colorWithWhite:1 alpha:0.12];
+  UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
+  btn.layer.cornerRadius = 22;
+  btn.clipsToBounds = YES;
+  btn.backgroundColor = [UIColor colorWithWhite:1 alpha:0.12];
 
-    [btn setTitle:@" 播放全部" forState:UIControlStateNormal];
-    [btn setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
-    btn.titleLabel.font = [UIFont boldSystemFontOfSize:15];
+  [btn setTitle:@" 播放全部" forState:UIControlStateNormal];
+  [btn setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+  btn.titleLabel.font = [UIFont boldSystemFontOfSize:15];
 
-    UIImage *icon = [[UIImage systemImageNamed:@"play.fill"]
-        imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-    [btn setImage:icon forState:UIControlStateNormal];
-    btn.tintColor = UIColor.whiteColor;
-
-    [btn addTarget:self
-            action:@selector(playAllTapped)
-  forControlEvents:UIControlEventTouchUpInside];
-
-    return btn;
+  UIImage *icon = [[UIImage systemImageNamed:@"play.fill"]
+                   imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+  [btn setImage:icon forState:UIControlStateNormal];
+  btn.tintColor = UIColor.whiteColor;
+  [btn addTarget:self action:@selector(playAllTapped:) forControlEvents:UIControlEventTouchUpInside];
+  return btn;
 }
 
-- (void)playAllTapped {
-
+- (void)playAllTapped:(UIButton* )button {
+  if (_buttonClicked) {
+    _buttonClicked(button);
+  }
 }
 
 - (UIButton *)createIconButton:(NSString *)iconName {
@@ -229,7 +227,7 @@
     SDWebImageContextImageTransformer: transformer, SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200, 200)), SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
   }];
   self.titleLabel.text = [playlist.name copy];
-  self.descLabel.text = playlist.desc.length ? [playlist.desc copy]: @"网易云音乐歌单";
+  self.descLabel.text = playlist.desc.length ? [playlist.desc copy]: @"SpotifySongList";
   PlaylistCreatorModel* creator = playlist.creator;
   self.artistNameLabel.text = [creator.nickname copy];
   [self.artistImageView sd_setImageWithURL:[NSURL URLWithString:creator.avatarUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{

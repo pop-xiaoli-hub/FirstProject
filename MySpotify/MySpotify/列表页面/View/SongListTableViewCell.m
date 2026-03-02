@@ -61,6 +61,16 @@
 }
 
 
+- (void)configWithSearchResultSong:(SongModel *)song {
+  self.nameLabel.text = song.name;
+  ArtistModel* artist = [song.artists objectAtIndex:0];
+  self.artistLabel.text = [artist.name copy];
+  NSLog(@"歌手名%@", artist.name);
+}
+
+
+
+
 - (void)awakeFromNib {
   [super awakeFromNib];
   // Initialization code

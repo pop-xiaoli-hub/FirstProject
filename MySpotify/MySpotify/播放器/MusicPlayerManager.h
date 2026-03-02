@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 #import <AVFoundation/AVFoundation.h>
-
+@class SongPlayingModel;
 typedef NS_ENUM(NSInteger, MusicPlayerState) {
     MusicPlayerStateStopped,
     MusicPlayerStatePlaying,
@@ -21,7 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong) AVPlayer *player;
 @property (nonatomic, strong) NSURL *currentURL;
 + (instancetype)sharedManager;
-- (void)playWithURL:(NSURL *)url;
+- (void)playWithSong:(SongPlayingModel *)song;
 
 - (void)play;
 - (void)pause;

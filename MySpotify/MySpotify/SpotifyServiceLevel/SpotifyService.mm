@@ -276,83 +276,89 @@
 }
 
 - (void)fetchSongsWithIds:(NSString *)ids completion:(void(^)(NSArray<SongModel *> *songs, NSError *error))completion {
-
-    if (ids.length == 0) {
-      if (completion) {
-        completion(@[], nil);
-      }
-        return;
+  if (ids.length == 0) {
+    if (completion) {
+      completion(@[], nil);
     }
-
-    NetworkManager *manager = [NetworkManager sharedmanager];
-    manager.sessionManager.requestSerializer =
-        [AFJSONRequestSerializer serializer];
-
-    NSString *url = @"http://localhost:3000/song/detail";
-    NSDictionary *params = @{ @"ids" : ids };
-
-    [manager GET:url parameters:params headers:nil progress:nil success:^(NSURLSessionDataTask *task, id responseObject) {
-
-        NSArray *songsJSON = responseObject[@"songs"];
-        NSArray<SongModel *> *songs =
-            [NSArray yy_modelArrayWithClass:[SongModel class]
-                                       json:songsJSON];
-
-        if (completion) {
-            completion(songs, nil);
-        }
-
-    } failure:^(NSURLSessionDataTask *task, NSError *error) {
-
-        if (completion) {
-            completion(nil, error);
-        }
-    }];
+    return;
+  }
+  NetworkManager *manager = [NetworkManager sharedmanager];
+  manager.sessionManager.requestSerializer =
+  [AFJSONRequestSerializer serializer];
+  NSString *url = @"http://localhost:3000/song/detail";
+  NSDictionary *params = @{ @"ids" : ids };
+  [manager GET:url parameters:params headers:nil progress:nil success:^(NSURLSessionDataTask *task, id responseObject) {
+    NSArray *songsJSON = responseObject[@"songs"];
+    NSArray<SongModel *> *songs = [NSArray yy_modelArrayWithClass:[SongModel class] json:songsJSON];
+    if (completion) {
+      completion(songs, nil);
+    }
+  } failure:^(NSURLSessionDataTask *task, NSError *error) {
+    if (completion) {
+      completion(nil, error);
+    }
+  }];
 }
-
-
-
 
 - (void)fetchArtistDetailWithId:(long long)artistId ompletion:(void (^)(id responseObject, NSError *error))completion {
 
-    NetworkManager *manager = [NetworkManager sharedmanager];
-    manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
+  NetworkManager *manager = [NetworkManager sharedmanager];
+  manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
 
-    NSString *url = @"http://localhost:3000/artists";
+  NSString *url = @"http://localhost:3000/artists";
 
-    NSDictionary *params = @{
-        @"id" : @(artistId)
-    };
+  NSDictionary *params = @{
+    @"id" : @(artistId)
+  };
 
-    [manager GET:url
-       parameters:params
-          headers:nil
-         progress:nil
-          success:^(NSURLSessionDataTask *task, id responseObject) {
+  [manager GET:url parameters:params headers:nil progress:nil success:^(NSURLSessionDataTask *task, id responseObject) {
+    if (completion) {
+      completion(responseObject, nil);
+    }
 
-              if (completion) {
-                  completion(responseObject, nil);
-              }
+  } failure:^(NSURLSessionDataTask *task, NSError *error) {
 
-          } failure:^(NSURLSessionDataTask *task, NSError *error) {
-
-              if (completion) {
-                  completion(nil, error);
-              }
-          }];
+    if (completion) {
+      completion(nil, error);
+    }
+  }];
 }
 
 - (void)fetchAllCommentsOfSongs:(SongModel *)songModel offset:(NSInteger)offset limit:(NSInteger)limit withCompletion:(void(^)(id responseObject, NSError *error))completion {
-    NetworkManager *manager = [NetworkManager sharedmanager];
-    manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
-    NSString *url = [NSString stringWithFormat:@"http://localhost:3000/comment/music?id=%lld&limit=%ld&offset=%ld", songModel.id, (long)limit, (long)offset];
+  NetworkManager *manager = [NetworkManager sharedmanager];
+  manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
+  NSString *url = [NSString stringWithFormat:@"http://localhost:3000/comment/music?id=%lld&limit=%ld&offset=%ld", songModel.id, (long)limit, (long)offset];
 
-    [manager GET:url parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
-      completion(responseObject, nil);
-    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
-        NSLog(@"评论获取失败：%@", error);
-        completion(nil, error);
-    }];
+  [manager GET:url parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+    completion(responseObject, nil);
+  } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+    NSLog(@"评论获取失败：%@", error);
+    completion(nil, error);
+  }];
+}
+
+- (void)searchSongs:(NSString *)keywords withCompletion:(void(^)(NSArray *songs, NSError *error))completion {
+  NetworkManager *manager = [NetworkManager sharedmanager];
+  manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
+  NSString *url = @"http://localhost:3000/search";
+  NSDictionary *params = @{
+    @"keywords": keywords,
+    @"type": @(1),
+    @"limit": @(20),
+    @"offset": @(0)
+  };
+  [manager GET:url parameters:params headers:nil progress:nil success:^(NSURLSessionDataTask *task, id responseObject) {
+   // NSArray *songs = responseObject[@"result"][@"songs"];
+    NSArray *songsJSON = responseObject[@"result"][@"songs"];
+    NSArray<SongModel *> *songs = [NSArray yy_modelArrayWithClass:[SongModel class] json:songsJSON];
+    if (completion) {
+      completion(songs, nil);
+    }
+  } failure:^(NSURLSessionDataTask *task, NSError *error) {
+    if (completion) {
+      completion(nil, error);
+    }
+  }];
 }
 
 

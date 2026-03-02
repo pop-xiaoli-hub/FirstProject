@@ -15,6 +15,9 @@
 #import "SongPlayingModel.h"
 #import "PlaylistManager.h"
 #import "SpotifyService.h"
+#import "songModel.h"
+#import "CommentViewController.h"
+#import "AlbumModel.h"
 
 @interface MusicPlayerController ()<UIScrollViewDelegate>
 @property (nonatomic, assign) BOOL isDragging;
@@ -44,28 +47,61 @@
     if (button.tag == 101) {
       [strongSelf handleDownloadButton:button];
     }
+    if (button.tag == 102) {
+      NSLog(@"评论区按钮");
+      [strongSelf handleCommentsButton:button];
+    }
   };
 
   // 初始化播放
   [self changeToIndex:self.currentIndex];
-  [self syncPlayButtonState];
+//  [self syncPlayButtonState];
+  self.myView.centerPage.switchButton.selected = YES;
+  NSDictionary* userInfo = @{
+    @"isPressed" : @(self.myView.centerPage.switchButton.selected),
+  };
+  [[NSNotificationCenter defaultCenter] postNotificationName:@"pressButton" object:nil userInfo:userInfo];
 
+  // 拖动中（手指按下并滑动）
+  [self.myView.centerPage.slider addTarget:self action:@selector(sliderTouchDown:) forControlEvents:UIControlEventTouchDown];
+  [self.myView.centerPage.slider addTarget:self action:@selector(sliderValueChanged:) forControlEvents:UIControlEventValueChanged];
+
+  // 拖动结束（手指松开）
+  [self.myView.centerPage.slider addTarget:self action:@selector(sliderTouchUp:) forControlEvents:UIControlEventTouchUpInside];
+  [self.myView.centerPage.slider addTarget:self action:@selector(sliderTouchUp:) forControlEvents:UIControlEventTouchUpOutside];
   __weak MusicPlayerManager *weakManager = [MusicPlayerManager sharedManager];
   self.timeObserver = [weakManager.player addPeriodicTimeObserverForInterval:CMTimeMake(1, 1) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
     __strong typeof(weakSelf) strongSelf = weakSelf;
     if (!strongSelf) return;
     AVPlayerItem *currentItem = weakManager.player.currentItem;
     if (!currentItem) return;
-
     Float64 current = CMTimeGetSeconds(time);
     Float64 total = CMTimeGetSeconds(currentItem.duration);
     if (total > 0 && !isnan(total)) {
-      strongSelf.myView.centerPage.slider.value = current / total;
+      if (!strongSelf.isDragging) {
+        strongSelf.myView.centerPage.slider.value = current / total;
+      }
     }
   }];
 
   [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(songDidPlayToEnd:) name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
+}
+# pragma mark - 评论区
 
+- (void)handleCommentsButton:(UIButton* )button {
+  PlaylistManager* listManager = [PlaylistManager shared];
+  SongPlayingModel* playingModel = listManager.playlist[listManager.currentIndex];
+  SongModel* song = [[SongModel alloc] init];
+  AlbumModel* album = [AlbumModel new];
+  album.picUrl = [playingModel.headerUrl copy];
+  song.name = [playingModel.name copy];
+  song.id = playingModel.songId;
+  song.album = album;
+  CommentViewController* vc = [[CommentViewController alloc] init];
+  vc.songModel = song;
+//  UINavigationController* nav = self.presentingViewController.navigationController;
+  [self presentViewController:vc animated:YES completion:nil];
+  vc.modalPresentationStyle = UIModalPresentationFullScreen;
 }
 
 #pragma mark - 播放完成回调
@@ -137,7 +173,7 @@
       song.picUrl = [currentSongModel.headerUrl copy];
       song.artistName = [currentSongModel.artistName copy];
       song.songId = currentSongModel.songId;
-      song.localPath = fileURL.path;
+      song.localPath = fileURL.lastPathComponent;
 
       DBManager* manager = [DBManager shared];
       [manager createTable:song];
@@ -222,39 +258,34 @@
   if (self.musicPlayList.count == 0) {
     return;
   }
-
   if (newIndex < 0 || newIndex >= self.musicPlayList.count) {
     newIndex = 0;
   }
-
   MusicPlayerManager *playerManager = [MusicPlayerManager sharedManager];
-
-  NSInteger oldIndex = self.currentIndex;
   self.currentIndex = newIndex;
-
   PlaylistManager *manager = [PlaylistManager shared];
   manager.currentIndex = newIndex;
-
   [self updateUIForCurrentIndex];
-
-  // 是否需要重新播放判断
-  SongPlayingModel *model = manager.playlist[newIndex];
-  NSURL *newURL = [NSURL URLWithString:model.audioResources];
-
-  BOOL isSameSong = playerManager.currentURL && newURL && [playerManager.currentURL.absoluteString isEqualToString:newURL.absoluteString];
-
+  SongPlayingModel* song = manager.playlist[newIndex];
+  NSURL* url = nil;
+  if (song.isDownload) {
+    NSString *docDir = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+    NSString *fullPath = [docDir stringByAppendingPathComponent:song.audioResources]; // 动态生成绝对路径
+    url = [NSURL fileURLWithPath:fullPath];
+  } else {
+    url = [NSURL URLWithString:song.audioResources];
+  }
+  BOOL isSameSong = playerManager.currentURL && url && [playerManager.currentURL.absoluteString isEqualToString:url.absoluteString];
   BOOL isPlaying = (playerManager.state == MusicPlayerStatePlaying);
-
-  // 正在播放同一首歌 → 不重播
   if (isSameSong && isPlaying) {
-    NSLog(@"同一首歌正在播放，不重播");
     [self syncPlayButtonState];
     return;
   }
-
-  // 不是同一首歌 或 没在播放 → 正常播放
   [playerManager stop];
   [self prepareAndPlayCurrentSong];
+  [[NSNotificationCenter defaultCenter] postNotificationName:@"playNextSong" object:nil userInfo:@{
+      @"isPressed" : @(1)
+  }];
 }
 
 
@@ -290,7 +321,7 @@
   [[NSNotificationCenter defaultCenter] postNotificationName:@"changeSong" object:nil userInfo:userInfo];
 }
 
-#pragma mark - 播放入口（异步安全）
+#pragma mark - 播放入口
 
 - (void)prepareAndPlayCurrentSong {
   if (self.musicPlayList.count == 0) {
@@ -331,8 +362,41 @@
     return;
   }
 
-  [[MusicPlayerManager sharedManager] playWithURL:url];
+ // [[MusicPlayerManager sharedManager] playWithURL:url];
+  [[MusicPlayerManager sharedManager] playWithSong:model];
   self.myView.centerPage.switchButton.selected = YES;
 }
+
+
+#pragma mark - 拖动播放
+- (void)sliderTouchDown:(UISlider* )slider {
+  self.isDragging = YES;
+}
+
+- (void)sliderValueChanged:(UISlider* )slider {
+
+}
+
+- (void)sliderTouchUp:(UISlider* )slider {
+  MusicPlayerManager* manager = [MusicPlayerManager sharedManager];
+  self.isDragging = NO;
+  AVPlayerItem* item = manager.player.currentItem;
+  if (!item) {
+    return;
+  }
+  Float64 total = CMTimeGetSeconds(item.duration);
+  if (total <= 0 || isnan(total)) {
+    return;
+  }
+  Float64 targetSeconds = slider.value * total;
+  CMTime targetTime = CMTimeMakeWithSeconds(targetSeconds, NSEC_PER_SEC);
+  __weak typeof (self) weakSelf = self;
+  [manager.player seekToTime:targetTime toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
+      if (finished) {
+        [weakSelf.player play];
+      }
+  }];
+}
+
 
 @end

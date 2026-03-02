@@ -15,6 +15,12 @@
 #import <SDWebImage/SDWebImage.h>
 #import "TracksIDModel.h"
 #import "SongListFooterView.h"
+#import "PLaylistManager.h"
+//#import "AlbumModel.h"
+#import "ArtistModel.h"
+#import "SongPlayingModel.h"
+#import "MusicPlayerController.h"
+
 @interface SongListViewController ()<UITableViewDelegate, UITableViewDataSource>
 @property (nonatomic, assign)NSInteger id;
 @property (nonatomic, assign)SongListType type;
@@ -65,6 +71,33 @@
   [self requestData];
 }
 
+- (void)jumpToPlayerViewController {
+  MusicPlayerController* vc = [[MusicPlayerController alloc] init];
+  PlaylistManager* manager = [PlaylistManager shared];
+  vc.musicPlayList = manager.playlist;
+  vc.currentIndex = manager.currentIndex;
+  vc.isplaying = YES;
+  [self presentViewController:vc animated:YES completion:nil];
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+//  SongModel* song = [self.songs objectAtIndex:indexPath.row];
+//  ArtistModel* artist = [song.ar objectAtIndex:0];
+//  NSLog(@"id = %lld, imageUrl = %@, artistName = %@", song.id, self.playlistModel.coverImgUrl, artist.name);
+//  SongPlayingModel* playingModel = [[SongPlayingModel alloc] initWithSongName:song.name andArtistName:artist.name andSongId:song.id andPicUrl:self.playlistModel.coverImgUrl andMusicSource:@"null" andIsDownloaded:NO];
+//  PlaylistManager* listManager = [PlaylistManager shared];
+//  for (SongPlayingModel* model in listManager.playlist) {
+//    if (model.songId == song.id) {
+//      [listManager.playlist removeObject:model];
+//    }
+//  }
+//  [listManager.playlist insertObject:playingModel atIndex:0];
+//  [[NSNotificationCenter defaultCenter] postNotificationName:@"playlistSong" object:nil userInfo:@{
+//      @"key" : @(1)
+//  }];
+//  [self jumpToPlayerViewController];
+}
+
 - (void)viewWillAppear:(BOOL)animated {
   [super viewWillAppear:animated];
   [self.navigationController setNavigationBarHidden:NO animated:YES];
@@ -105,8 +138,19 @@
     self.headerView = [[SongListHeaderView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 450)];
     //self.headerView.delegate = self;
   }
-  //
   self.tableView.tableHeaderView = self.headerView;
+  __weak typeof (self) weakSelf = self;
+  self.headerView.buttonClicked = ^(UIButton * button) {
+    PlaylistManager* listManager = [PlaylistManager shared];
+    [listManager.playlist removeAllObjects];
+    for (SongModel* song in weakSelf.songs) {
+      ArtistModel* artist = [song.ar objectAtIndex:0];
+      NSLog(@"id = %lld, imageUrl = %@, artistName = %@", song.id, weakSelf.playlistModel.coverImgUrl, artist.name);
+      SongPlayingModel* playingModel = [[SongPlayingModel alloc] initWithSongName:song.name andArtistName:artist.name andSongId:song.id andPicUrl:weakSelf.playlistModel.coverImgUrl andMusicSource:@"null" andIsDownloaded:NO];
+      [listManager.playlist addObject:playingModel];
+    }
+    [weakSelf jumpToPlayerViewController];
+  };
 }
 
 - (void)requestData {
@@ -123,8 +167,6 @@
     [weakSelf handleResponse:playlist];
   }];
 }
-
-
 
 - (void)handleResponse:(PlaylistModel *)playlistModel{
   NSArray<SongModel *> *songs = playlistModel.tracks;
@@ -169,7 +211,6 @@
 }
 
 - (NSString *)idsStringFromSlice:(NSArray<TracksIDModel *> *)slice {
-
   NSMutableArray *ids = [NSMutableArray array];
   for (SongModel *model in slice) {
     [ids addObject:@(model.id).stringValue];
@@ -226,7 +267,6 @@
   cell.selectionStyle = UITableViewCellSelectionStyleNone;
   return cell;
 }
-
 
 
 

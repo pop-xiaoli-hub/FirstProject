@@ -11,6 +11,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface SongListTableViewCell : UITableViewCell
 - (void)configWithSong:(SongModel *)song;
+- (void)configWithSearchResultSong:(SongModel *)song;
 @end
 
 NS_ASSUME_NONNULL_END

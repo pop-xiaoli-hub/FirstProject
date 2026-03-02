@@ -63,7 +63,6 @@
 - (void)pressButton:(UIButton* )button {
   if (self.buttonClickBlock) {
     self.buttonClickBlock(button);
-    NSLog(@"点击下载");
   }
 }
 

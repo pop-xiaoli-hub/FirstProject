@@ -33,6 +33,7 @@
 #import "SpotifyService.h"
 #import "SongPlayingModel.h"
 #import "PLaylistManager.h"
+#import "MySpotify-Swift.h"
 //@class DetailMusicPlayerView,MusicPlayerView;
 @interface CAAnimationGroup (Completion)
 @property (nonatomic, copy) void (^completion)(BOOL finished);
@@ -173,7 +174,20 @@
 
   [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(upDateFloatingView:) name:@"changeSong" object:nil];
   [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(upDateSwitchButton:) name:@"pressButton" object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(upDateSwitchButton:) name:@"playLocalSong" object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(upDateSwitchButton:) name:@"playNextSong" object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(upDateFloatingView:) name:@"playDownloadSong" object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(handlePlaylistPageNotice:) name:@"playlistSong" object:nil];
+}
 
+- (void)handlePlaylistPageNotice:(NSNotification* )notification {
+  [self upDateFloatingView];
+}
+
+- (void)showSmartIsland {
+  PlaylistManager* manager = [PlaylistManager shared];
+  SongPlayingModel* model = [manager.playlist objectAtIndex:manager.currentIndex];
+  [[MusicLiveActivityManager new] startWithSongName:model.name artistName:model.artistName albumArtURL:model.headerUrl];
 }
 
 - (void)upDateFloatingView:(NSNotification* )notification {
@@ -185,6 +199,7 @@
   self.currentSongModel = model;
   self.floatingPlayerView.trackArtistNameLabel.text = [model.artistName copy];
   self.floatingPlayerView.trackNameLabel.text = [model.name copy];
+  self.floatingPlayerView.buttonOfPlayerSwitches.selected = YES;
   SDImageResizingTransformer *transformer =
   [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
   [self.floatingPlayerView.trackHeaderView sd_setImageWithURL:[NSURL URLWithString:model.headerUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
@@ -192,16 +207,38 @@
   }];
 }
 
+- (void)upDateFloatingView {
+  PlaylistManager* manager = [PlaylistManager shared];
+  NSInteger index = manager.currentIndex;
+  SongPlayingModel* model = manager.playlist[index];
+  self.currentSongModel = model;
+  self.floatingPlayerView.trackArtistNameLabel.text = [model.artistName copy];
+  self.floatingPlayerView.trackNameLabel.text = [model.name copy];
+  SDImageResizingTransformer *transformer =
+  [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
+  [self.floatingPlayerView.trackHeaderView sd_setImageWithURL:[NSURL URLWithString:model.headerUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
+    SDWebImageContextImageTransformer: transformer, SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200,200)), SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
+  }];
+}
+
+
 - (void)upDateSwitchButton:(NSNotification* )notification {
+  NSLog(@"通知");
   NSDictionary* dict = notification.userInfo;
   NSInteger temp = [dict[@"isPressed"] integerValue];
   self.floatingPlayerView.buttonOfPlayerSwitches.selected = temp;
+  if ([notification.name isEqualToString:@"playLocalSong"]) {
+    [self upDateFloatingView];
+  }
 }
 
 
 - (void)dealloc {
-    [[NSNotificationCenter defaultCenter] removeObserver:self name:@"changeSong" object:nil];
+  [[NSNotificationCenter defaultCenter] removeObserver:self name:@"changeSong" object:nil];
   [[NSNotificationCenter defaultCenter] removeObserver:self name:@"pressButton" object:nil];
+  [[NSNotificationCenter defaultCenter] removeObserver:self name:@"playLocalSong" object:nil];
+  [[NSNotificationCenter defaultCenter] removeObserver:self name:@"playlistSong" object:nil];
+  [[NSNotificationCenter defaultCenter] removeObserver:self name:@"playDownloadSong" object:nil];
 }
 
 
@@ -212,6 +249,7 @@
   NSArray* array = [dbManager queryAllSongs];
   for (int i = 0; i < array.count; i++) {
     SongDBModel* dbModel = array[i];
+    NSLog(@"播放记录歌曲名：%@", dbModel.songName);
     SongPlayingModel* playingModel = [[SongPlayingModel alloc] initWithSongName:dbModel.songName andArtistName:dbModel.artistName andSongId:dbModel.songId andPicUrl:dbModel.picUrl andMusicSource:@"null" andIsDownloaded:NO];
     [playlistManager.playlist addObject:playingModel];
   }
@@ -236,9 +274,9 @@
 - (void)playSong:(UIButton* )button {
   PlaylistManager* manager = [PlaylistManager shared];
   SongPlayingModel* model = [manager.playlist objectAtIndex:manager.currentIndex];
-  NSURL* url = [NSURL URLWithString:model.audioResources];
+  //NSURL* url = [NSURL URLWithString:model.audioResources];
   MusicPlayerManager* playManager = [MusicPlayerManager sharedManager];
-  [playManager playWithURL:url];
+  [playManager playWithSong:model];
 }
 
 
@@ -269,6 +307,8 @@
   self.activityIndicator.hidesWhenStopped = YES;
   self.activityIndicator.color = [UIColor whiteColor];
 }
+
+
 
 - (void)createTableView {
   self.myView.tableView.delegate = self;
@@ -509,7 +549,8 @@
     [playlistManager.playlist insertObject:songModel atIndex:0];
     NSURL* url = [NSURL URLWithString:songModel.audioResources];
     MusicPlayerManager* manager = [MusicPlayerManager sharedManager];
-    [manager playWithURL:url];
+    //[manager playWithURL:url];
+    [manager playWithSong:songModel];
     playlistManager.currentIndex = 0;
     self.floatingPlayerView.trackNameLabel.text = songModel.name;
     self.floatingPlayerView.trackArtistNameLabel.text = [songModel.name copy];

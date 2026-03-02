@@ -33,20 +33,19 @@
 - (void)createScrollView {
   self.scrollView = [[UIScrollView alloc] init];
   self.scrollView.frame = CGRectMake(0, 195, [[UIScreen mainScreen] bounds].size.width, 800);
-  self.scrollView.contentSize = CGSizeMake([[UIScreen mainScreen] bounds].size.width * 3, 800);
+  self.scrollView.contentSize = CGSizeMake([[UIScreen mainScreen] bounds].size.width * 3,800);
   self.scrollView.backgroundColor = [UIColor clearColor];
   self.scrollView.pagingEnabled = YES;
   self.scrollView.scrollEnabled = YES;
   self.scrollView.bounces = NO;
-  [self createTableViews];
   [self.contentView addSubview:self.scrollView];
+  [self createTableViews];
 }
 
 - (void)createTableViews {
   CGFloat width = [[UIScreen mainScreen] bounds].size.width;
   self.tableViewOfSongs = [[UITableView alloc] initWithFrame: CGRectMake(0, 0, width, 800)];
   self.tableViewOfSongs.backgroundColor = [UIColor clearColor];
-
   self.tableViewOfSongs.scrollEnabled = NO;
   self.tableViewOfSongs.delegate = self;
   self.tableViewOfSongs.dataSource = self;
@@ -98,6 +97,7 @@
     cell.cellType = CustomCollectionViewCellTypeSong;
     cell.backgroundColor = [UIColor clearColor];
     SongDBModel* model = [self.localSongArray objectAtIndex:indexPath.row];
+    NSLog(@"为啥少歌曲:%@", model.songName);
     [cell configWithSong:model];
     SDImageResizingTransformer *transformer =
     [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];

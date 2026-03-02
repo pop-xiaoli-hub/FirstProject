@@ -18,6 +18,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface SongListHeaderView : UIView
 @property (nonatomic, weak)id<SongListHeaderViewDelegate> delegate;
+@property (nonatomic, copy)void (^buttonClicked)(UIButton* );
 //@property (nonatomic, strong, readonly)UIImageView* artistImageView;
 - (void)configWithPlayList:(PlaylistModel *)playlist;
 @end

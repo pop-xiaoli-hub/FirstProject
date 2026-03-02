@@ -12,6 +12,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, strong) UISearchBar *searchBar;
 @property (nonatomic, strong) UICollectionView *collectionView;
-
+@property (nonatomic, strong)UITableView* resultTableview;
+@property (nonatomic, strong) UIVisualEffectView *blurView;
+@property (nonatomic, strong) UIView *darkMaskView;
+- (void)showResultTable;
+- (void)hideResultTable;
 @end
 NS_ASSUME_NONNULL_END

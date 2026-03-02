@@ -106,7 +106,7 @@
   [self.commentsArray addObjectsFromArray:response.comments];
   self.pager.offset += response.comments.count;
   self.pager.hasMore = response.more;
-  CGFloat contentWidth = [UIScreen mainScreen].bounds.size.width - 12 - 40 - 8 - 12; // left padding + avatar + spacing + right padding
+  CGFloat contentWidth = [UIScreen mainScreen].bounds.size.width - 12 - 40 - 8 - 12;
   for (ZLCommentModel *model in self.commentsArray) {
     model.needFold = [self isTextViewExceedThreeLines:model.content width:contentWidth];
     model.expandedContent = NO;
@@ -198,22 +198,19 @@
 }
 
 - (BOOL)isTextViewExceedThreeLines:(NSString *)text width:(CGFloat)width {
-  NSTextStorage *storage = [[NSTextStorage alloc] initWithString:text attributes:@{NSFontAttributeName: [UIFont systemFontOfSize:15]}];
-  NSLayoutManager *layoutManager = [[NSLayoutManager alloc] init];
-  NSTextContainer *container = [[NSTextContainer alloc] initWithSize:CGSizeMake(width, CGFLOAT_MAX)];
+  NSTextStorage *storage = [[NSTextStorage alloc] initWithString:text attributes:@{NSFontAttributeName: [UIFont systemFontOfSize:17]}];//管理文本内容和属性
+  NSLayoutManager *layoutManager = [[NSLayoutManager alloc] init];//将字符转换为字形，管理文本的布局过程
+  NSTextContainer *container = [[NSTextContainer alloc] initWithSize:CGSizeMake(width, CGFLOAT_MAX)];//定义文本的可占据区域
   container.lineFragmentPadding = 0;
   [layoutManager addTextContainer:container];
   [storage addLayoutManager:layoutManager];
   NSUInteger glyphCount = [layoutManager numberOfGlyphs];
   __block NSInteger lines = 0;
-  [layoutManager enumerateLineFragmentsForGlyphRange:NSMakeRange(0, glyphCount)
-                                          usingBlock:^(CGRect rect,
-                                                       CGRect usedRect,
-                                                       NSTextContainer * _Nonnull textContainer,
-                                                       NSRange glyphRange,
-                                                       BOOL * _Nonnull stop) {
+  [layoutManager enumerateLineFragmentsForGlyphRange:NSMakeRange(0, glyphCount) usingBlock:^(CGRect rect, CGRect usedRect, NSTextContainer * _Nonnull textContainer, NSRange glyphRange, BOOL * _Nonnull stop) {
     lines++;
-    if (lines > 3) *stop = YES;
+    if (lines > 3) {
+      *stop = YES;
+    }
   }];
   return lines > 3;
 }

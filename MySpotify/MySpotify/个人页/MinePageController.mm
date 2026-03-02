@@ -15,6 +15,8 @@
 #import "ArtistModel.h"
 #import "SpotifyService.h"
 #import "DownloadViewController.h"
+#import "SongDBModel+WCTTableCoding.h"
+#import "SongDBModel.h"
 @interface MinePageController  ()<UITableViewDelegate,UITableViewDataSource, UIScrollViewDelegate>
 @property (nonatomic, strong) UITableView *tableView;
 @property (nonatomic, strong) UserModel *user;
@@ -46,6 +48,10 @@
   DBManager* dataManager = [DBManager shared];
   NSArray* array = [dataManager queryAllSongs];
   self.localSongArray = [NSMutableArray arrayWithArray:array];
+  NSLog(@"%ld", self.localSongArray.count);
+  for (SongDBModel* song in self.localSongArray) {
+    NSLog(@"test: %@",song.songName);
+  }
 }
 
 - (void)setNavigationBarOpaque {
@@ -192,6 +198,7 @@
     return cell;
   }
 }
+
 
 @end
 

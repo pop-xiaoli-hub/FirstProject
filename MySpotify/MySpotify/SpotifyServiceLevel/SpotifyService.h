@@ -22,6 +22,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)fetchArtistDetailWithId:(long long)artistId ompletion:(void (^)(id responseObject, NSError *error))completion;
 - (void)fetchAllCommentsOfSongs:(SongModel *)songModel offset:(NSInteger)offset limit:(NSInteger)limit withCompletion:(void(^)(id responseObject, NSError *error))completion;
 - (void)fetchSongResources:(SongPlayingModel* )model completion:(void(^)( BOOL temp))completion;
+- (void)searchSongs:(NSString *)keywords withCompletion:(void(^)(NSArray *songs, NSError *error))completion;
 @end
 
 NS_ASSUME_NONNULL_END
