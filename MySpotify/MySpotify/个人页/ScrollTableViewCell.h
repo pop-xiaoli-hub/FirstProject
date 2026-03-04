@@ -14,10 +14,13 @@ typedef NS_ENUM(NSUInteger, CustomCollectionViewCellType) {
   CustomCollectionViewCellTypeNote
 };
 @interface ScrollTableViewCell : UITableViewCell
-@property (nonatomic, strong)UIImageView* songImageView;
-@property (nonatomic, strong)UILabel* songNameLabel;
-@property (nonatomic, strong)UILabel* artistNameLabel;
-@property (nonatomic, assign)CustomCollectionViewCellType cellType;
+@property (nonatomic, strong) UILabel *indexLabel;
+@property (nonatomic, strong) UIImageView *songImageView;
+@property (nonatomic, strong) UILabel *songNameLabel;
+@property (nonatomic, strong) UILabel *artistNameLabel;
+@property (nonatomic, strong) UIImageView *trailingIconView;
+@property (nonatomic, strong) UILabel *yearLabel;
+@property (nonatomic, assign) CustomCollectionViewCellType cellType;
 - (void)configWithSong:(SongDBModel*)model;
 @end
 

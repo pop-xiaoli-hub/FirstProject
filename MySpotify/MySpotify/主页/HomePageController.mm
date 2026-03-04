@@ -253,14 +253,16 @@
     SongPlayingModel* playingModel = [[SongPlayingModel alloc] initWithSongName:dbModel.songName andArtistName:dbModel.artistName andSongId:dbModel.songId andPicUrl:dbModel.picUrl andMusicSource:@"null" andIsDownloaded:NO];
     [playlistManager.playlist addObject:playingModel];
   }
-  self.currentSongModel = [playlistManager.playlist objectAtIndex:playlistManager.currentIndex];
-  SDImageResizingTransformer *transformer =
-  [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
-  [self.floatingPlayerView.trackHeaderView sd_setImageWithURL:[NSURL URLWithString:self.currentSongModel.headerUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
-    SDWebImageContextImageTransformer: transformer, SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200,200)), SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
-  }];
-  self.floatingPlayerView.trackNameLabel.text = [self.currentSongModel.name copy];
-  self.floatingPlayerView.trackArtistNameLabel.text = [self.currentSongModel.name copy];
+  if (playlistManager.playlist.count >= 0) {
+    self.currentSongModel = [playlistManager.playlist objectAtIndex:playlistManager.currentIndex];
+    SDImageResizingTransformer *transformer =
+    [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
+    [self.floatingPlayerView.trackHeaderView sd_setImageWithURL:[NSURL URLWithString:self.currentSongModel.headerUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
+      SDWebImageContextImageTransformer: transformer, SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200,200)), SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
+    }];
+    self.floatingPlayerView.trackNameLabel.text = [self.currentSongModel.name copy];
+    self.floatingPlayerView.trackArtistNameLabel.text = [self.currentSongModel.name copy];
+  }
   //  self.playList = [NSMutableArray arrayWithArray:array];
   //  SongDBModel* dbSong = self.playList[self.currentPlayIndex];
   //  SongModel* song = [SongModel new];

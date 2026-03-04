@@ -6,6 +6,7 @@
 //
 
 #import "LZDiskCache.h"
+#import "LZCachePathHelper.h"
 #import <CommonCrypto/CommonCrypto.h>
 
 @interface LZDiskCache ()
@@ -15,15 +16,20 @@
 
 @implementation LZDiskCache
 
++ (instancetype)sharedInstance {
+  static LZDiskCache *instance;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    instance = [[LZDiskCache alloc] init];
+  });
+  return instance;
+}
+
 - (instancetype)init {
   NSLog(@"当前执行：%s",__func__);
   if(self=[super init]) {
-    NSString *base = NSSearchPathForDirectoriesInDomains(NSCachesDirectory,NSUserDomainMask,YES).firstObject;
-    self.cacheDir = [base stringByAppendingPathComponent:@"StreamCache"];
+    self.cacheDir = [LZCachePathHelper streamCacheDirectory];
     self.ioQueue = dispatch_queue_create("disk.cache.queue", DISPATCH_QUEUE_SERIAL);
-    if(![[NSFileManager defaultManager] fileExistsAtPath:self.cacheDir]){
-      [[NSFileManager defaultManager] createDirectoryAtPath:self.cacheDir withIntermediateDirectories:YES attributes:nil error:nil];
-    }
   }
   return self;
 }
@@ -51,17 +57,29 @@
 }
 
 - (void)writeData:(NSData *)data offset:(NSUInteger)offset key:(NSString *)key {
+  [self writeData:data offset:offset key:key completion:nil];
+}
+
+- (void)writeData:(NSData *)data offset:(NSUInteger)offset key:(NSString *)key completion:(void (^)(void))completion {
   NSLog(@"当前执行：%s",__func__);
-  if(!data) return;
+  if (!data) {
+    return;
+  }
   dispatch_async(self.ioQueue, ^{
     NSString *path = [self filePath:key];
-    if(![[NSFileManager defaultManager] fileExistsAtPath:path]){
+    if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
       [[NSFileManager defaultManager] createFileAtPath:path contents:nil attributes:nil];
     }
+    /*
+     以写入模式打开文件，返回文件句柄，先将写入位置移动到offset，如果重叠会发生覆写
+     */
     NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:path];
     [handle seekToFileOffset:offset];
     [handle writeData:data];
     [handle closeFile];
+    if (completion) {
+      completion();
+    }
   });
 }
 

@@ -5,6 +5,7 @@
 //  Created by xiaoli pop on 2026/1/29.
 //
 #import "MusicCacheManager.h"
+#import "LZCachePathHelper.h"
 
 @interface MusicCacheManager () <NSURLSessionDataDelegate>
 
@@ -40,9 +41,8 @@
         return;
     }
 
-    // 未缓存，边听边缓存
-    NSString *cacheDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
-    NSString *tempPath = [cacheDir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.temp", songID]];
+    // 未缓存，边听边缓存（临时文件放在 AudioCache 子目录）
+    NSString *tempPath = [LZCachePathHelper pathInAudioCacheForFileName:[NSString stringWithFormat:@"%@.temp", songID]];
     self.tempFilePath = tempPath;
 
     self.audioData = [NSMutableData data];
@@ -106,17 +106,17 @@
 }
 
 - (NSString *)cachedFilePathForSongID:(NSString *)songID {
-    NSString *cacheDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
-    return [cacheDir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.mp3", songID]];
+    return [LZCachePathHelper pathInAudioCacheForFileName:[NSString stringWithFormat:@"%@.mp3", songID]];
 }
 
 - (void)clearAllCache {
-    NSString *cacheDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
+    // 仅清理 AudioCache 子目录，避免误删 Caches 根目录下其他模块文件
+    NSString *audioDir = [LZCachePathHelper audioCacheDirectory];
     NSFileManager *manager = [NSFileManager defaultManager];
-    NSArray *files = [manager contentsOfDirectoryAtPath:cacheDir error:nil];
+    NSArray *files = [manager contentsOfDirectoryAtPath:audioDir error:nil];
     for (NSString *file in files) {
         if ([file hasSuffix:@".mp3"] || [file hasSuffix:@".temp"]) {
-            [manager removeItemAtPath:[cacheDir stringByAppendingPathComponent:file] error:nil];
+            [manager removeItemAtPath:[audioDir stringByAppendingPathComponent:file] error:nil];
         }
     }
 }

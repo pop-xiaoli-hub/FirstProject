@@ -12,6 +12,7 @@
 
 
 WCDB_PROPERTY(songId)
+WCDB_PROPERTY(lastPlayTimestamp)
 WCDB_PROPERTY(url)
 WCDB_PROPERTY(picUrl)
 WCDB_PROPERTY(songName)

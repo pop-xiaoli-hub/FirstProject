@@ -6,10 +6,11 @@
 //
 
 #import <Foundation/Foundation.h>
-
+#import <AVFoundation/AVFoundation.h>
 NS_ASSUME_NONNULL_BEGIN
 
 @interface LZPlayerController : NSObject
+@property AVPlayer *player;
 + (instancetype)sharedPlayer;
 - (void)playWithURL:(NSURL *)url;
 @end

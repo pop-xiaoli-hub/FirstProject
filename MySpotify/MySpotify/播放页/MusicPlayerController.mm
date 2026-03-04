@@ -29,11 +29,9 @@
 
 - (void)viewDidLoad {
   [super viewDidLoad];
-
   self.myView = [[MusicPlayerView alloc] initWithFrame:self.view.frame];
   self.myView.userInteractionEnabled = YES;
   [self.view addSubview:self.myView];
-
   [self.myView.centerPage.switchButton addTarget:self action:@selector(pressButtonOfSwitch:) forControlEvents:UIControlEventTouchUpInside];
   [self.myView.centerPage.previousButton addTarget:self action:@selector(pressButtonOfPrevious:) forControlEvents:UIControlEventTouchUpInside];
   [self.myView.centerPage.nextButton addTarget:self action:@selector(pressButtonOfNext:) forControlEvents:UIControlEventTouchUpInside];

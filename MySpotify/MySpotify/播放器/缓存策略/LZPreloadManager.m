@@ -35,8 +35,8 @@
   NSLog(@"当前执行：%s",__func__);
   if (self = [super init]) {
     self.net = [LZRangeDownloader sharedLoader];
-    self.disk = [LZDiskCache new];
-    self.memory = [LZMemoryCache new];
+    self.disk = [LZDiskCache sharedInstance];
+    self.memory = [LZMemoryCache sharedInstance];
     self.queue = [[NSOperationQueue alloc] init];
     self.queue.maxConcurrentOperationCount = 2;
     self.queue.qualityOfService = NSQualityOfServiceBackground;

@@ -17,7 +17,7 @@
 #import "DownloadViewController.h"
 #import "SongDBModel+WCTTableCoding.h"
 #import "SongDBModel.h"
-@interface MinePageController  ()<UITableViewDelegate,UITableViewDataSource, UIScrollViewDelegate>
+@interface MinePageController  ()<UITableViewDelegate,UITableViewDataSource>
 @property (nonatomic, strong) UITableView *tableView;
 @property (nonatomic, strong) UserModel *user;
 @property (nonatomic, strong) NSMutableArray<SongModel *> *songs;
@@ -30,38 +30,68 @@
 
 - (void)viewDidLoad {
   [super viewDidLoad];
-  [self fetchData];
+  [self setupGradientBackground];
   [self setNavigationBarOpaque];
   [self setTabBarBackgroundColor];
-  UIImage* image =  [UIImage imageNamed:@"back.jpg"];
-  self.view.layer.contents = (__bridge id)image.CGImage;
-  self.view.backgroundColor = [UIColor clearColor];
-
-//  self.view.backgroundColor = UIColor.systemGroupedBackgroundColor;
   [self setUpNavigationBar];
   [self setupData];
+  [self fetchData];
   [self setupTableView];
-  // Do any additional setup after loading the view.
+  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadSongs:) name:@"reloadSongs" object:nil];
+}
+
+- (void)reloadSongs:(NSNotification *)notification {
+  [self fetchData];
+  [self.tableView reloadRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:1 inSection:0]] withRowAnimation:UITableViewRowAnimationNone];
 }
 
 - (void)fetchData {
-  DBManager* dataManager = [DBManager shared];
-  NSArray* array = [dataManager queryAllSongs];
-  self.localSongArray = [NSMutableArray arrayWithArray:array];
-  NSLog(@"%ld", self.localSongArray.count);
-  for (SongDBModel* song in self.localSongArray) {
-    NSLog(@"test: %@",song.songName);
+  DBManager *dataManager = [DBManager shared];
+  NSArray *array = [dataManager queryAllSongs];
+  NSArray *sorted = [array sortedArrayUsingComparator:^NSComparisonResult(SongDBModel *obj1, SongDBModel *obj2) {
+    if (obj1.lastPlayTimestamp > obj2.lastPlayTimestamp) {
+      return NSOrderedAscending;
+    } else if (obj1.lastPlayTimestamp < obj2.lastPlayTimestamp) {
+      return NSOrderedDescending;
+    } else {
+      return NSOrderedSame;
+    }
+  }];
+  self.localSongArray = sorted ? [NSMutableArray arrayWithArray:sorted] : [NSMutableArray array];
+}
+
+- (void)dealloc {
+  [[NSNotificationCenter defaultCenter] removeObserver:self name:@"reloadSongs" object:nil];
+}
+
+- (void)setupGradientBackground {
+  CAGradientLayer *gradient = [CAGradientLayer layer];
+  gradient.frame = self.view.bounds;
+  UIColor *topBlack = [UIColor colorWithRed:0.15 green:0.15 blue:0.15 alpha:1]; // 深灰
+  UIColor *bottomBlack = [UIColor blackColor]; // 纯黑
+  gradient.colors = @[(id)topBlack.CGColor, (id)bottomBlack.CGColor];
+  gradient.locations = @[@0, @1];
+  [self.view.layer insertSublayer:gradient atIndex:0];
+}
+
+- (void)viewDidLayoutSubviews {
+  [super viewDidLayoutSubviews];
+  for (CALayer *layer in self.view.layer.sublayers) {
+    if ([layer isKindOfClass:[CAGradientLayer class]]) {
+      layer.frame = self.view.bounds;
+      break;
+    }
   }
 }
 
 - (void)setNavigationBarOpaque {
-    UINavigationBarAppearance* app = [[UINavigationBarAppearance alloc] init];
-    [app configureWithOpaqueBackground];
-    app.shadowColor = [UIColor clearColor];
-    app.backgroundColor = [UIColor clearColor];
-    self.navigationController.navigationBar.standardAppearance = app;
-    self.navigationController.navigationBar.scrollEdgeAppearance =  app;
-
+  UINavigationBarAppearance *app = [[UINavigationBarAppearance alloc] init];
+  [app configureWithTransparentBackground];
+  app.backgroundColor = [UIColor clearColor];
+  app.shadowColor = [UIColor clearColor];
+  self.navigationController.navigationBar.standardAppearance = app;
+  self.navigationController.navigationBar.scrollEdgeAppearance = app;
+  self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
 }
 
 
@@ -69,7 +99,7 @@
   UITabBarAppearance *tabAppearance = [[UITabBarAppearance alloc] init];
   tabAppearance.backgroundColor = [UIColor blackColor];
   self.tabBarController.tabBar.standardAppearance = tabAppearance;
-  self.tabBarController.tabBar.scrollEdgeAppearance = tabAppearance; 
+  self.tabBarController.tabBar.scrollEdgeAppearance = tabAppearance;
 }
 
 
@@ -79,39 +109,16 @@
   self.rightButton = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"a2.png"] style:UIBarButtonItemStylePlain target:self action:@selector(pressRight)];
   self.navigationItem.leftBarButtonItem = self.leftButton;
   self.navigationItem.rightBarButtonItem = self.rightButton;
-  self.leftButton.tintColor = [UIColor colorWithRed:0.5 green:0.1 blue:0.3 alpha:1];
-  self.rightButton.tintColor = [UIColor colorWithRed:0.5 green:0.1 blue:0.3 alpha:1];
+  self.leftButton.tintColor = [UIColor whiteColor];
+  self.rightButton.tintColor = [UIColor whiteColor];
 }
 
 - (void)pressLeft {
-  
+
 }
 
 - (void)pressRight {
 
-}
-
-- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
-  CGFloat contentx = scrollView.contentOffset.x;
-  CGFloat w = scrollView.frame.size.width;
-  CGFloat index = contentx / w;
-  NSInteger select = (NSInteger)(index + 0.5);
-  MinePageTableViewCell* cell = [self.tableView cellForRowAtIndexPath:[NSIndexPath indexPathForRow:1 inSection:0]];
-  if (select >= cell.segmentControl.numberOfSegments) {
-    select = cell.segmentControl.numberOfSegments - 1;
-  }
-  if (cell.segmentControl.selectedSegmentIndex != select) {
-    cell.segmentControl.selectedSegmentIndex = select;
-  }    //self.segmentControl.selectedSegmentIndex = contentx / [[UIScreen mainScreen] bounds].size.width;
-}
-
-- (void)segChanged {
-  MinePageTableViewCell* cell = [self.tableView cellForRowAtIndexPath:[NSIndexPath indexPathForRow:1 inSection:0]];
-  NSInteger selected = cell.segmentControl.selectedSegmentIndex;
-  CGFloat offsetx = selected * cell.scrollView.bounds.size.width;
-  [UIView animateWithDuration:0.3 delay:0 options:UIViewAnimationOptionCurveEaseInOut animations:^{
-    cell.scrollView.contentOffset = CGPointMake(offsetx, 0);
-  } completion:nil];
 }
 
 - (void)handleDownloadButton:(UIButton* )button {
@@ -120,22 +127,12 @@
   [self.navigationController pushViewController:vc animated:YES];
 }
 
+
+
 - (void)setupData {
-  self.user = [UserModel new];
-  self.user.name = @"情深似海无边际";
+  if (!self.user) self.user = [UserModel new];
+  self.user.name = @"Luna";
   self.user.avatar = [UIImage imageNamed:@"header.jpg"];
-
-  self.songs = @[].mutableCopy;
-  NSArray *titles = @[@"我是一只小猪",@"明天我要娶了你",@"今天你要嫁给我"];
-  NSArray *authors = @[@"阿土",@"郑燕子",@"孙燕姿"];
-
-  for (int i = 0; i < titles.count; i++) {
-    SongModel *s = [SongModel new];
-    ArtistModel* artist = [s.artists objectAtIndex:0];
-    s.name = titles[i];
-    artist.name = authors[i];
-    [self.songs addObject:s];
-  }
 }
 
 - (void)setupTableView {
@@ -143,8 +140,9 @@
   self.tableView.delegate = self;
   self.tableView.dataSource = self;
   self.tableView.backgroundColor = [UIColor clearColor];
-
   self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+  self.tableView.showsVerticalScrollIndicator = NO;
+  self.tableView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentAutomatic;
   [self.tableView registerClass:CountHeaderCell.class forCellReuseIdentifier:@"header"];
   [self.tableView registerClass:MinePageTableViewCell.class forCellReuseIdentifier:@"content"];
   [self.view addSubview:self.tableView];
@@ -155,9 +153,13 @@
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+  if (indexPath.row == 0) {
+    return 120;
+  }
+  CGFloat playlistH = 314;
   NSInteger count = self.localSongArray.count;
-  CGFloat height = 80 * (count + 1);
-  return indexPath.row == 0 ? 180 : height + 200;
+  CGFloat listHeight = (CGFloat)(count * 72);
+  return playlistH + listHeight;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -174,27 +176,15 @@
     MinePageTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"content"];
     cell.selectionStyle = UITableViewCellSelectionStyleNone;
     __weak typeof(self) weakSelf = self;
-    cell.buttonClickBlock = ^(UIButton * button) {
-      __strong typeof(weakSelf) strongSelf = self;
-      if (!strongSelf) return;
-      switch (button.tag) {
-        case 101:
-          NSLog(@"第一个按钮被点击");
-          [strongSelf handleDownloadButton:button];
-          break;
-        default:
-          break;
-      }
+    cell.downloadButtonBlock = ^{
+      __strong typeof(weakSelf) strongSelf = weakSelf;
+      if (strongSelf) [strongSelf handleDownloadButton:nil];
     };
-    cell.scrollView.delegate = self;
-    cell.localSongArray = self.localSongArray;
-    [cell.segmentControl addTarget:self action:@selector(segChanged) forControlEvents:UIControlEventValueChanged];
-    //    [cell configWithSongs:self.songs];
-    //    cell.likeBlock = ^(NSInteger index) {
-    //      SongModel *song = self.songs[index];
-    //      song.isLiked = !song.isLiked;
-    //      [tableView reloadRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationNone];
-    //    };
+    cell.buttonClickBlock = ^(UIButton *button) {
+      __strong typeof(weakSelf) strongSelf = weakSelf;
+      if (strongSelf && button.tag == 101) [strongSelf handleDownloadButton:button];
+    };
+    cell.localSongArray = self.localSongArray ?: [NSMutableArray array];
     return cell;
   }
 }

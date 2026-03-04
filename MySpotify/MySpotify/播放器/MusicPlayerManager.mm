@@ -12,6 +12,8 @@
 #import "SongDBModel+WCTTableCoding.h"
 #import "SongDBModel.h"
 #import "DBManager.h"
+#import "LZStreamingURLBuilder.h"
+#import "LZResourceLoader.h"
 @interface MusicPlayerManager ()
 
 
@@ -93,21 +95,6 @@
   self.state = MusicPlayerStateStopped;
 }
 
-
-//- (void)playWithURL:(NSURL *)url {
-//  self.currentURL = url;
-//  if (!url) {
-//    return;
-//  }
-//  [self stop];
-//  AVPlayerItem *item = [AVPlayerItem playerItemWithURL:url];
-//  self.currentItem = item;
-//
-//  [item addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nil];
-//  [self.player replaceCurrentItemWithPlayerItem:item];
-//  self.state = MusicPlayerStateBuffering;
-//}
-
 - (void)playWithSong:(SongPlayingModel *)song {
   DBManager* manager = [DBManager shared];
   SongDBModel* songDBModel = [[SongDBModel alloc] init];
@@ -115,11 +102,25 @@
   songDBModel.artistName = song.artistName;
   songDBModel.picUrl = song.headerUrl;
   songDBModel.songId = song.songId;
+  songDBModel.url = song.audioResources ?: @"";
   songDBModel.isCompleted = NO;
   songDBModel.cacheSize = 0;
   songDBModel.totalSize = 0;
+  songDBModel.lastPlayTimestamp = [[NSDate date] timeIntervalSince1970];
   [manager createTable:songDBModel];
-  [manager insert:songDBModel];
+  if ([manager dataBaseHasObject:songDBModel.songId]) {
+    SongDBModel *existing = [manager querySongWithSongId:song.songId];
+    if (existing) {
+      existing.lastPlayTimestamp = songDBModel.lastPlayTimestamp;
+      existing.url = song.audioResources ?: @"";
+      [manager updateObject:existing];
+    }
+  } else {
+    [manager insert:songDBModel];
+  }
+  [[NSNotificationCenter defaultCenter] postNotificationName:@"reloadSongs" object:nil userInfo:@{
+      @"key" : @(1)
+  }];
   NSURL* url = nil;
   if (!song.isDownload) {
     url = [NSURL URLWithString:song.audioResources];
@@ -135,11 +136,23 @@
     }
   }
   self.currentURL = url;
-  if (!url) {
-    return;
-  }
+  if (!url) return;
   [self stop];
-  AVPlayerItem *item = [AVPlayerItem playerItemWithURL:url];
+
+  AVPlayerItem *item = nil;
+  if (song.isDownload) {
+    item = [AVPlayerItem playerItemWithURL:url];
+  } else {
+    NSURL *streamURL = [LZStreamingURLBuilder buildStreamingURLWithSongId:song.songId realURL:url];
+    if (!streamURL) {
+      item = [AVPlayerItem playerItemWithURL:url];
+    } else {
+      AVURLAsset *asset = [AVURLAsset URLAssetWithURL:streamURL options:nil];
+      dispatch_queue_t loaderQueue = dispatch_queue_create("com.myspotify.resourceloader", DISPATCH_QUEUE_SERIAL);
+      [asset.resourceLoader setDelegate:[LZResourceLoader sharedLoader] queue:loaderQueue];
+      item = [AVPlayerItem playerItemWithAsset:asset];
+    }
+  }
   self.currentItem = item;
 
   [item addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nil];
@@ -149,7 +162,6 @@
   NSLog(@"audioResources = %@", song.audioResources);
   NSLog(@"url = %@", url);
   NSLog(@"isFileURL = %d", url.isFileURL);
-  NSLog(@"file exists = %d", [[NSFileManager defaultManager] fileExistsAtPath:url.path]);
 }
 
 - (void)play {

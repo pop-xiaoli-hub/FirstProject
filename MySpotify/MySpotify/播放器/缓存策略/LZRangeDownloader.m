@@ -49,7 +49,8 @@
     return;
   }
   
-  NSString *taskID = [NSString stringWithFormat:@"%lu_%lu_%lu", (unsigned long)[url.absoluteString hash], (unsigned long)offset, (unsigned long)length];
+  // 使用 url 完整字符串避免 hash 碰撞导致不同 URL 错误共享任务
+  NSString *taskID = [NSString stringWithFormat:@"%@_%lu_%lu", url.absoluteString ?: @"", (unsigned long)offset, (unsigned long)length];
   
   dispatch_barrier_async(self.syncQueue, ^{
     NSURLSessionDataTask *existTask = self.taskPool[taskID];
@@ -80,7 +81,7 @@
 #pragma mark - Cancel
 - (void)cancelWithKey:(NSString *)key offset:(NSUInteger)offset length:(NSUInteger)length {
   NSLog(@"当前执行：%s",__func__);
-  NSString *taskID = [NSString stringWithFormat:@"%lu_%lu_%lu", (unsigned long)[key hash], (unsigned long)offset, (unsigned long)length];
+  NSString *taskID = [NSString stringWithFormat:@"%@_%lu_%lu", key ?: @"", (unsigned long)offset, (unsigned long)length];
   dispatch_barrier_async(self.syncQueue, ^{
     NSURLSessionDataTask *task = self.taskPool[taskID];
     if (task) {
@@ -92,10 +93,11 @@
 
 - (void)cancelAllForKey:(NSString *)key {
   NSLog(@"当前执行：%s",__func__);
+  NSString *prefix = key ? [key stringByAppendingString:@"_"] : @"";
   dispatch_barrier_async(self.syncQueue, ^{
-    NSArray *allKeys = self.taskPool.allKeys;
+    NSArray *allKeys = [self.taskPool.allKeys copy];
     for (NSString *taskID in allKeys) {
-      if ([taskID hasPrefix:[NSString stringWithFormat:@"%lu", (unsigned long)[key hash]]]) {
+      if (prefix.length > 0 && [taskID hasPrefix:prefix]) {
         NSURLSessionDataTask *task = self.taskPool[taskID];
         [task cancel];
         [self.taskPool removeObjectForKey:taskID];

@@ -11,6 +11,7 @@
 
 @property(nonatomic, assign) long songId;      // 主键：歌曲ID
 @property(nonatomic, copy) NSString *url;         // 曲资源
+@property (nonatomic, assign) NSTimeInterval lastPlayTimestamp;//上次播放时间戳
 @property(nonatomic, copy) NSString *picUrl;      //封面图
 @property(nonatomic, copy) NSString *songName;    //歌曲名
 @property(nonatomic, copy) NSString *artistName;  //作曲家

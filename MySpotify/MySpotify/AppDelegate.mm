@@ -6,7 +6,7 @@
 //
 
 #import "AppDelegate.h"
-
+#import "DBManager.h"
 @interface AppDelegate ()
 
 @end
@@ -16,9 +16,14 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
   // Override point for customization after application launch.
+  DBManager* manager = [DBManager shared];
+  [manager cleanCacheWithMaxSize:40 * 1024 * 1024];
   return YES;
 }
 
+- (void)cleanExpiredCacheIfNeeded {
+
+}
 
 #pragma mark - UISceneSession lifecycle
 

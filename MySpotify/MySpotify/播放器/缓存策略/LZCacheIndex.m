@@ -219,8 +219,21 @@
   dispatch_sync(q, ^{
     NSNumber *total = self.totalMap[key];
     if (!total) { completed = NO; return; }
-    NSUInteger missing = [self nextMissingOffsetForKey:key];
-    completed = (missing >= total.unsignedIntegerValue);
+    // 内联「下一个缺失 offset」计算，避免调用 nextMissingOffsetForKey 导致同一队列 sync 死锁
+    NSArray *ranges = self.map[key];
+    NSUInteger p = 0;
+    if (ranges && ranges.count > 0) {
+      NSArray *sorted = [ranges sortedArrayUsingComparator:^NSComparisonResult(LZCacheRange *a, LZCacheRange *b){
+        if (a.start < b.start) return NSOrderedAscending;
+        if (a.start > b.start) return NSOrderedDescending;
+        return NSOrderedSame;
+      }];
+      for (LZCacheRange *r in sorted) {
+        if (p < r.start) break;
+        p = MAX(p, r.end + 1);
+      }
+    }
+    completed = (p >= total.unsignedIntegerValue);
   });
   return completed;
 }
@@ -243,6 +256,24 @@
     val = self.totalMap[key];
   });
   return val;
+}
+
+- (NSUInteger)cachedTotalLengthForKey:(NSString *)key {
+  if (![self isValidKey:key]) {
+    return 0;
+  }
+  __block NSUInteger total = 0;
+  dispatch_queue_t q = [self queueForKey:key];
+  dispatch_sync(q, ^{
+    NSArray<LZCacheRange *> *ranges = self.map[key];
+    if (!ranges || ranges.count == 0) {
+      return;
+    }
+    for (LZCacheRange *r in ranges) {
+      total += (r.end - r.start + 1);
+    }
+  });
+  return total;
 }
 
 - (void)clearForKey:(NSString *)key {

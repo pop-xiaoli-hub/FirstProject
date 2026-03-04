@@ -2,377 +2,281 @@
 //  MinePageTableViewCell.m
 //  MySpotify
 //
-//  Created by xiaoli pop on 2026/1/15.
-//
 
 #import "MinePageTableViewCell.h"
 #import "SongModel.h"
 #import <Masonry/Masonry.h>
-#import "AlbumModel.h"
 #import <SDWebImage/SDWebImage.h>
-#import "ArtistModel.h"
 #import "ScrollTableViewCell.h"
 #import "SongDBModel.h"
-@interface MinePageTableViewCell ()<UITableViewDelegate, UITableViewDataSource>
+#import "MinePlaylistCollectionCell.h"
 
+static NSString *const kPlaylistCellId = @"MinePlaylistCollectionCell";
+static const CGFloat kPlaylistItemSize = 110;
+static const CGFloat kPlaylistLineSpacing = 14;
+static const CGFloat kPlaylistInteritemSpacing = 14;
+
+static const CGFloat kDownloadButtonCornerRadius = 14;
+
+@interface MinePageTableViewCell () <UITableViewDelegate, UITableViewDataSource, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout>
+@property (nonatomic, strong) UILabel *playlistTitleLabel;
+@property (nonatomic, strong) UIButton *downloadButton;
+@property (nonatomic, strong) UIVisualEffectView *downloadButtonGlassView;
+@property (nonatomic, strong) UIView *downloadHighlightOverlay;
+@property (nonatomic, strong) UILabel *recentTitleLabel;
+@property (nonatomic, copy) NSArray<NSDictionary<NSString *, NSString *> *> *playlistData;
+@property (nonatomic, assign) NSInteger selectedPlaylistIndex;
 @end
 
 @implementation MinePageTableViewCell
 
+static UIColor *spotifyGreen(void) {
+  return [UIColor colorWithRed:29/255.0 green:185/255.0 blue:84/255.0 alpha:1];
+}
+
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
   if (self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
     self.backgroundColor = UIColor.clearColor;
-    [self creatStackView];
-    [self createSegmentControl];
-    [self createScrollView];
+    self.contentView.backgroundColor = UIColor.clearColor;
+    _playlistData = @[
+      @{ @"title": @"爵士化专播", @"subtitle": @"36-11", @"url": @"https://picsum.photos/500/500?random=1" },
+      @{ @"title": @"冷冷", @"subtitle": @"34-32", @"url": @"https://picsum.photos/600/600?random=2" },
+      @{ @"title": @"流行", @"subtitle": @"36-39", @"url": @"https://picsum.photos/800/800?random=3" },
+      @{ @"title": @"深清摇滚", @"subtitle": @"34-31", @"url": @"https://picsum.photos/1000/1000?random=4" }
+    ];
+    _selectedPlaylistIndex = 0;
+    [self createPlaylistSection];
+    [self createDownloadButton];
+    [self createRecentSection];
   }
   return self;
 }
 
+- (void)createPlaylistSection {
+  _playlistTitleLabel = [[UILabel alloc] init];
+  _playlistTitleLabel.text = @"我的收藏歌单";
+  _playlistTitleLabel.font = [UIFont systemFontOfSize:18 weight:UIFontWeightBold];
+  _playlistTitleLabel.textColor = [UIColor whiteColor];
+  [self.contentView addSubview:_playlistTitleLabel];
 
-- (void)createScrollView {
-  self.scrollView = [[UIScrollView alloc] init];
-  self.scrollView.frame = CGRectMake(0, 195, [[UIScreen mainScreen] bounds].size.width, 800);
-  self.scrollView.contentSize = CGSizeMake([[UIScreen mainScreen] bounds].size.width * 3,800);
-  self.scrollView.backgroundColor = [UIColor clearColor];
-  self.scrollView.pagingEnabled = YES;
-  self.scrollView.scrollEnabled = YES;
-  self.scrollView.bounces = NO;
-  [self.contentView addSubview:self.scrollView];
-  [self createTableViews];
+  UICollectionViewFlowLayout *layout = [[UICollectionViewFlowLayout alloc] init];
+  layout.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+  layout.minimumLineSpacing = kPlaylistLineSpacing;
+  layout.minimumInteritemSpacing = kPlaylistInteritemSpacing;
+  layout.itemSize = CGSizeMake(kPlaylistItemSize, kPlaylistItemSize + 38);
+  layout.sectionInset = UIEdgeInsetsZero;
+
+  _collectionView = [[UICollectionView alloc] initWithFrame:CGRectZero collectionViewLayout:layout];
+  _collectionView.backgroundColor = [UIColor clearColor];
+  _collectionView.showsHorizontalScrollIndicator = NO;
+  _collectionView.delegate = self;
+  _collectionView.allowsMultipleSelection = NO;
+  _collectionView.dataSource = self;
+  [_collectionView registerClass:[MinePlaylistCollectionCell class] forCellWithReuseIdentifier:kPlaylistCellId];
+  [self.contentView addSubview:_collectionView];
+
+  [_playlistTitleLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+    make.left.equalTo(self.contentView).offset(20);
+    make.top.equalTo(self.contentView).offset(12);
+    make.height.mas_equalTo(24);
+  }];
+  [_collectionView mas_makeConstraints:^(MASConstraintMaker *make) {
+    make.left.equalTo(self.contentView).offset(20);
+    make.right.equalTo(self.contentView).offset(-20);
+    make.top.equalTo(_playlistTitleLabel.mas_bottom).offset(12);
+    make.height.mas_equalTo(kPlaylistItemSize + 38);
+  }];
 }
 
-- (void)createTableViews {
-  CGFloat width = [[UIScreen mainScreen] bounds].size.width;
-  self.tableViewOfSongs = [[UITableView alloc] initWithFrame: CGRectMake(0, 0, width, 800)];
-  self.tableViewOfSongs.backgroundColor = [UIColor clearColor];
-  self.tableViewOfSongs.scrollEnabled = NO;
-  self.tableViewOfSongs.delegate = self;
-  self.tableViewOfSongs.dataSource = self;
-  [self.scrollView addSubview:self.tableViewOfSongs];
+- (void)createDownloadButton {
+  UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+  _downloadButtonGlassView = [[UIVisualEffectView alloc] initWithEffect:effect];
+  _downloadButtonGlassView.layer.cornerRadius = kDownloadButtonCornerRadius;
+  _downloadButtonGlassView.layer.masksToBounds = YES;
+  _downloadButtonGlassView.layer.borderWidth = 1;
+  _downloadButtonGlassView.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.12].CGColor;
+  _downloadButtonGlassView.alpha = 0.82;
+  [self.contentView addSubview:_downloadButtonGlassView];
 
-  self.tableViewOfPodcasting = [[UITableView alloc] initWithFrame:CGRectMake(width, 0, width, 800)];
-  self.tableViewOfPodcasting.backgroundColor = [UIColor clearColor];
+  _downloadHighlightOverlay = [[UIView alloc] init];
+  _downloadHighlightOverlay.userInteractionEnabled = NO;
+  _downloadHighlightOverlay.layer.cornerRadius = kDownloadButtonCornerRadius;
+  _downloadHighlightOverlay.layer.masksToBounds = YES;
+  CAGradientLayer *highlightGradient = [CAGradientLayer layer];
+  highlightGradient.colors = @[
+    (id)[UIColor colorWithWhite:1 alpha:0.22].CGColor,
+    (id)[UIColor colorWithWhite:1 alpha:0.08].CGColor,
+    (id)[UIColor colorWithWhite:1 alpha:0.02].CGColor
+  ];
+  highlightGradient.locations = @[@0, @0.5, @1];
+  highlightGradient.startPoint = CGPointMake(0.5, 0);
+  highlightGradient.endPoint = CGPointMake(0.5, 1);
+  highlightGradient.frame = CGRectMake(0, 0, 320, 48);
+  highlightGradient.cornerRadius = kDownloadButtonCornerRadius;
+  [_downloadHighlightOverlay.layer addSublayer:highlightGradient];
+  [self.contentView addSubview:_downloadHighlightOverlay];
 
-  self.tableViewOfPodcasting.scrollEnabled = NO;
-  self.tableViewOfPodcasting.delegate = self;
-  self.tableViewOfPodcasting.dataSource = self;
-  [self.scrollView addSubview:self.tableViewOfPodcasting];
+  _downloadButton = [UIButton buttonWithType:UIButtonTypeSystem];
+  [_downloadButton setTitle:@"我的下载" forState:UIControlStateNormal];
+  _downloadButton.titleLabel.font = [UIFont systemFontOfSize:15 weight:UIFontWeightMedium];
+  [_downloadButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+  _downloadButton.backgroundColor = [UIColor clearColor];
+  [_downloadButton addTarget:self action:@selector(downloadButtonTapped) forControlEvents:UIControlEventTouchUpInside];
+  [self.contentView addSubview:_downloadButton];
 
-  self.tableViewOfNotes =  [[UITableView alloc] initWithFrame:CGRectMake(width * 2, 0, width, 800)];
-  self.tableViewOfNotes.backgroundColor = [UIColor clearColor];
-
-  self.tableViewOfNotes.scrollEnabled = NO;
-  [self.scrollView addSubview:self.tableViewOfNotes];
-  self.tableViewOfNotes.delegate = self;
-  self.tableViewOfNotes.dataSource = self;
-  [self.tableViewOfNotes registerClass:[UITableViewCell class] forCellReuseIdentifier:@"cellOfNotes"];
-  [self.tableViewOfSongs registerClass:[ScrollTableViewCell class] forCellReuseIdentifier:@"cellOfSongs"];
-  [self.tableViewOfPodcasting registerClass:[UITableViewCell class] forCellReuseIdentifier:@"cellOfPodcasting"];
-  self.tableViewOfSongs.tag = 101;
-  self.tableViewOfPodcasting.tag = 102;
-  self.tableViewOfNotes.tag = 103;
-  [self.tableViewOfSongs reloadData];
-  [self.tableViewOfPodcasting reloadData];
-  [self.tableViewOfNotes reloadData];
+  [_downloadButtonGlassView mas_makeConstraints:^(MASConstraintMaker *make) {
+    make.left.equalTo(self.contentView).offset(20);
+    make.right.equalTo(self.contentView).offset(-20);
+    make.top.equalTo(_collectionView.mas_bottom).offset(14);
+    make.height.mas_equalTo(48);
+  }];
+  [_downloadHighlightOverlay mas_makeConstraints:^(MASConstraintMaker *make) {
+    make.edges.equalTo(_downloadButtonGlassView);
+  }];
+  [_downloadButton mas_makeConstraints:^(MASConstraintMaker *make) {
+    make.edges.equalTo(_downloadButtonGlassView);
+  }];
 }
 
+- (void)layoutSubviews {
+  [super layoutSubviews];
+  if (_downloadHighlightOverlay.layer.sublayers.count > 0) {
+    CAGradientLayer *gradient = (CAGradientLayer *)_downloadHighlightOverlay.layer.sublayers.firstObject;
+    if ([gradient isKindOfClass:[CAGradientLayer class]]) {
+      gradient.frame = _downloadHighlightOverlay.bounds;
+      gradient.cornerRadius = kDownloadButtonCornerRadius;
+    }
+  }
+}
+
+- (void)downloadButtonTapped {
+  if (self.downloadButtonBlock) {
+    self.downloadButtonBlock();
+  }
+  if (self.buttonClickBlock) {
+    self.buttonClickBlock(_downloadButton);
+  }
+}
+
+- (void)createRecentSection {
+  _recentTitleLabel = [[UILabel alloc] init];
+  _recentTitleLabel.text = @"最近播放";
+  _recentTitleLabel.font = [UIFont systemFontOfSize:18 weight:UIFontWeightBold];
+  _recentTitleLabel.textColor = [UIColor whiteColor];
+  [self.contentView addSubview:_recentTitleLabel];
+
+  _tableViewOfSongs = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
+  _tableViewOfSongs.backgroundColor = [UIColor clearColor];
+  _tableViewOfSongs.scrollEnabled = NO;
+  _tableViewOfSongs.separatorStyle = UITableViewCellSeparatorStyleNone;
+  _tableViewOfSongs.delegate = self;
+  _tableViewOfSongs.dataSource = self;
+  [_tableViewOfSongs registerClass:[ScrollTableViewCell class] forCellReuseIdentifier:@"cellOfSongs"];
+  [self.contentView addSubview:_tableViewOfSongs];
+
+  [_recentTitleLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+    make.left.equalTo(self.contentView).offset(20);
+    make.top.equalTo(_downloadButtonGlassView.mas_bottom).offset(20);
+    make.height.mas_equalTo(24);
+  }];
+  [_tableViewOfSongs mas_makeConstraints:^(MASConstraintMaker *make) {
+    make.left.right.equalTo(self.contentView);
+    make.top.equalTo(_recentTitleLabel.mas_bottom).offset(12);
+    make.height.mas_equalTo(0).priorityHigh();
+  }];
+}
+
+- (void)setLocalSongArray:(NSMutableArray *)localSongArray {
+  _localSongArray = localSongArray ? [NSMutableArray arrayWithArray:localSongArray] : [NSMutableArray array];
+  [_tableViewOfSongs reloadData];
+  CGFloat listH = (CGFloat)(_localSongArray.count * 72);
+  [_tableViewOfSongs mas_updateConstraints:^(MASConstraintMaker *make) {
+    make.height.mas_equalTo(listH);
+  }];
+}
+
+#pragma mark - UICollectionView
+
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
+  return _playlistData.count;
+}
+
+- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+  MinePlaylistCollectionCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:kPlaylistCellId forIndexPath:indexPath];
+  NSDictionary *item = _playlistData[indexPath.item];
+  BOOL selected = (indexPath.item == _selectedPlaylistIndex);//默认选择第一个，如果发现点击的item不是当前Index，select为false，即未选中
+  [cell configWithTitle:item[@"title"] subtitle:item[@"subtitle"] imageURL:item[@"url"] selected:selected];
+  return cell;
+}
+
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+  BOOL changed = (indexPath.item != _selectedPlaylistIndex);//判断是否点击的是同一个item
+  if (changed) {//如果点击的是同一个item执行
+    NSIndexPath *previous = [NSIndexPath indexPathForItem:_selectedPlaylistIndex inSection:0];
+    _selectedPlaylistIndex = indexPath.item;
+    [collectionView performBatchUpdates:^{
+      [collectionView reloadItemsAtIndexPaths:@[previous, indexPath]];
+    } completion:^(BOOL finished) {
+      MinePlaylistCollectionCell *cell = (MinePlaylistCollectionCell *)[collectionView cellForItemAtIndexPath:indexPath];
+      if ([cell isKindOfClass:[MinePlaylistCollectionCell class]]) {
+        [cell playSelectAnimation];
+      }
+    }];
+  } else {
+    MinePlaylistCollectionCell *cell = (MinePlaylistCollectionCell *)[collectionView cellForItemAtIndexPath:indexPath];
+    if ([cell isKindOfClass:[MinePlaylistCollectionCell class]]) {
+      [cell playSelectAnimation];
+    }
+  }
+}
+
+- (void)collectionView:(UICollectionView *)collectionView didHighlightItemAtIndexPath:(NSIndexPath *)indexPath {
+  MinePlaylistCollectionCell *cell = (MinePlaylistCollectionCell *)[collectionView cellForItemAtIndexPath:indexPath];
+  if ([cell isKindOfClass:[MinePlaylistCollectionCell class]]) {
+    [cell setHighlighted:YES];
+  }
+}
+
+- (void)collectionView:(UICollectionView *)collectionView didUnhighlightItemAtIndexPath:(NSIndexPath *)indexPath {
+  MinePlaylistCollectionCell *cell = (MinePlaylistCollectionCell *)[collectionView cellForItemAtIndexPath:indexPath];
+  if ([cell isKindOfClass:[MinePlaylistCollectionCell class]]) {
+    [cell setHighlighted:NO];
+  }
+}
+
+
+
+
+#pragma mark - UITableView
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-  return self.localSongArray.count;
+  return (NSInteger)self.localSongArray.count;
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
-  if (tableView == self.tableViewOfSongs) {
-    return 80;
-  } else {
-    return 100;
-  }
+  return 72;
 }
-
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-  if (tableView == self.tableViewOfSongs) {
-    ScrollTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cellOfSongs"  forIndexPath:indexPath];
-    cell.cellType = CustomCollectionViewCellTypeSong;
-    cell.backgroundColor = [UIColor clearColor];
-    SongDBModel* model = [self.localSongArray objectAtIndex:indexPath.row];
-    NSLog(@"为啥少歌曲:%@", model.songName);
+  ScrollTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cellOfSongs" forIndexPath:indexPath];
+  cell.cellType = CustomCollectionViewCellTypeSong;
+  cell.backgroundColor = [UIColor clearColor];
+  cell.indexLabel.text = [NSString stringWithFormat:@"%ld", (long)(indexPath.row + 1)];
+  if (indexPath.row < (NSInteger)self.localSongArray.count) {
+    SongDBModel *model = self.localSongArray[indexPath.row];
     [cell configWithSong:model];
-    SDImageResizingTransformer *transformer =
-    [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
-    /*
-     创建一个图片转换器transformer,用于在图片加载后对UIImage做重新绘制/缩放的类，在图片被解码后将图片重新渲染成指定尺寸
-     */
+    SDImageResizingTransformer *transformer = [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
     [cell.songImageView sd_setImageWithURL:[NSURL URLWithString:model.picUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
-      SDWebImageContextImageTransformer: transformer, SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200, 200)), SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
+      SDWebImageContextImageTransformer: transformer,
+      SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200, 200)),
+      SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
     }];
-    cell.layer.masksToBounds = YES;
-    cell.layer.cornerRadius = 8;
+  }
   cell.selectionStyle = UITableViewCellSelectionStyleNone;
-    return cell;
-  } else if (tableView == self.tableViewOfPodcasting) {
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cellOfPodcasting"  forIndexPath:indexPath];
-  cell.backgroundColor = [UIColor clearColor];
-  cell.selectionStyle = UITableViewCellSelectionStyleNone;
-    return cell;
-  } else {
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cellOfNotes"  forIndexPath:indexPath];
-  cell.backgroundColor = [UIColor clearColor];
-  cell.selectionStyle = UITableViewCellSelectionStyleNone;
-    return cell;
-  }
+  return cell;
 }
 
-
-
-
-- (void)configWithSongs:(nonnull NSArray<SongModel *> *)songs {
-  
+- (void)configWithSongs:(NSArray<SongModel *> *)songs {
 }
-
-//- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
-//    CGFloat contentx = self.scrollView.contentOffset.x;
-//    CGFloat w = scrollView.frame.size.width;
-//    CGFloat index = contentx / w;
-//    NSInteger select = (NSInteger)(index + 0.5);
-//    if (select >= self.segmentControl.numberOfSegments) {
-//        select =self.segmentControl.numberOfSegments - 1;
-//    }
-//    if (self.segmentControl.selectedSegmentIndex != select)
-//    {
-//        self.segmentControl.selectedSegmentIndex = select;
-//    }    //self.segmentControl.selectedSegmentIndex = contentx / [[UIScreen mainScreen] bounds].size.width;
-//}
-
-
-
-- (void)createSegmentControl {
-  self.segmentControl = [[UISegmentedControl alloc] init];
-  self.segmentControl.translatesAutoresizingMaskIntoConstraints = NO;
-  [self.contentView addSubview:self.segmentControl];
-  [NSLayoutConstraint activateConstraints:@[
-    [self.segmentControl.centerXAnchor constraintEqualToAnchor:self.contentView.centerXAnchor],
-    [self.segmentControl.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:160],
-    [self.segmentControl.widthAnchor constraintEqualToConstant:380],
-    [self.segmentControl.heightAnchor constraintEqualToConstant:30]
-  ]];
-  [self.segmentControl insertSegmentWithTitle:@"音乐" atIndex:0 animated:YES];
-  [self.segmentControl insertSegmentWithTitle:@"播客" atIndex:1 animated:YES];
-  [self.segmentControl insertSegmentWithTitle:@"笔记" atIndex:2 animated:YES];
-  self.segmentControl.selectedSegmentIndex = 0;
-  //    [self.segmentControl addTarget:self action:@selector(segChanged) forControlEvents:UIControlEventValueChanged];
-}
-
-
-
-- (void)creatStackView {
-  UIStackView* stackView = [[UIStackView alloc] init];
-  stackView.translatesAutoresizingMaskIntoConstraints = NO;
-
-  stackView.axis = UILayoutConstraintAxisHorizontal;
-  stackView.distribution = UIStackViewDistributionFillEqually;
-  stackView.spacing = 10;
-  for (int i = 0; i < 4; i++) {
-    UIButton* button = [UIButton buttonWithType:UIButtonTypeCustom];
-    [button setImage:[UIImage imageNamed:[NSString stringWithFormat:@"b%d.png",i + 1]] forState:UIControlStateNormal];
-    [stackView addArrangedSubview:button];
-    button.tag = 101 + i;
-    [button addTarget:self action:@selector(pressButton:) forControlEvents:UIControlEventTouchUpInside];
-  }
-  [self.contentView addSubview:stackView];
-  [NSLayoutConstraint activateConstraints:@[
-    [stackView.centerXAnchor constraintEqualToAnchor:self.contentView.centerXAnchor],
-    [stackView.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:10],
-    [stackView.heightAnchor constraintEqualToConstant:50],
-    [stackView.widthAnchor constraintEqualToConstant:300]
-  ]];
-  UIStackView* stackView2 = [[UIStackView alloc] init];
-  stackView2.translatesAutoresizingMaskIntoConstraints = NO;
-  stackView2.axis = UILayoutConstraintAxisHorizontal;
-  stackView2.distribution = UIStackViewDistributionFillEqually;
-  stackView.spacing = 10;
-  NSArray* array = @[@"下载", @"收藏", @"历史", @"装扮"];
-  for (int i = 0; i < 4; i++) {
-    UILabel* label = [[UILabel alloc] init];
-    label.text = array[i];
-    label.textAlignment = NSTextAlignmentCenter;
-    label.backgroundColor = [UIColor clearColor];
-    label.textColor = [UIColor whiteColor];
-    [stackView2 addArrangedSubview:label];
-  }
-  [self.contentView addSubview:stackView2];
-  [NSLayoutConstraint activateConstraints:@[
-    [stackView2.centerXAnchor constraintEqualToAnchor:self.contentView.centerXAnchor],
-    [stackView2.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:60],
-    [stackView2.heightAnchor constraintEqualToConstant:15],
-    [stackView2.widthAnchor constraintEqualToConstant:312]
-  ]];
-
-  UIStackView* stackView3 = [[UIStackView alloc] init];
-  stackView3.translatesAutoresizingMaskIntoConstraints = NO;
-
-  stackView3.axis = UILayoutConstraintAxisHorizontal;
-  stackView3.distribution = UIStackViewDistributionFillEqually;
-  stackView3.spacing = 10;
-  for (int i = 0; i < 4; i++) {
-    UIButton* button = [UIButton buttonWithType:UIButtonTypeCustom];
-    [button setImage:[UIImage imageNamed:[NSString stringWithFormat:@"c%d.png",i + 1]] forState:UIControlStateNormal];
-    [stackView3 addArrangedSubview:button];
-    button.tag = 105 + i;
-    [button addTarget:self action:@selector(pressButton:) forControlEvents:UIControlEventTouchUpInside];
-  }
-  [self.contentView addSubview:stackView3];
-  [stackView3 mas_makeConstraints:^(MASConstraintMaker *make) {
-    make.centerX.equalTo(self.contentView);
-    make.top.equalTo(self.contentView).offset(80);
-    make.height.mas_equalTo(50);
-    make.width.mas_equalTo(300);
-  }];
-  UIStackView* stackView4 = [[UIStackView alloc] init];
-  stackView4.translatesAutoresizingMaskIntoConstraints = NO;
-  stackView4.axis = UILayoutConstraintAxisHorizontal;
-  stackView4.distribution = UIStackViewDistributionFillEqually;
-  stackView.spacing = 10;
-  NSArray* array2 = @[@"睡眠", @"书籍", @"设置", @"云盘"];
-  for (int i = 0; i < 4; i++) {
-    UILabel* label = [[UILabel alloc] init];
-    label.text = array2[i];
-    label.textAlignment = NSTextAlignmentCenter;
-    label.backgroundColor = [UIColor clearColor];
-    label.textColor = [UIColor whiteColor];
-    [stackView4 addArrangedSubview:label];
-  }
-  [self.contentView addSubview:stackView4];
-  [stackView4 mas_makeConstraints:^(MASConstraintMaker *make) {
-    make.centerX.equalTo(self.contentView);
-    make.top.equalTo(self.contentView).offset(130);
-    make.height.mas_equalTo(15);
-    make.width.mas_equalTo(312);
-  }];
-}
-
-
-- (void)pressButton:(UIButton* )button {
-  if (self.buttonClickBlock) {
-    self.buttonClickBlock(button);
-  }
-}
-
-
-
-
-//- (void)configWithSongs:(NSArray<SongModel *> *)songs {
-//  self.songs = songs;
-//  [_scrollView.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
-//
-//  UIView *lastView = nil;
-//  for (int i = 0; i < songs.count; i++) {
-//    SongModel *song = songs[i];
-//
-//    UIView *item = [self songView:song index:i];
-//    [_scrollView addSubview:item];
-//
-//    [item mas_makeConstraints:^(MASConstraintMaker *make) {
-//      make.top.bottom.equalTo(self.scrollView);
-//      make.width.equalTo(self.scrollView);
-//      make.left.equalTo(lastView ? lastView.mas_right : self.scrollView);
-//    }];
-//    lastView = item;
-//  }
-//
-//  [_scrollView mas_makeConstraints:^(MASConstraintMaker *make) {
-//    make.right.equalTo(lastView);
-//  }];
-//}
-//
-//
-//- (UIView *)songView:(SongModel *)song index:(NSInteger)index {
-//
-//  AlbumModel* albumModel = song.album;
-//  UIView *view = [[UIView alloc] init];
-//  UIImageView *img = [[UIImageView alloc] init];
-//  SDImageResizingTransformer *transformer =
-//  [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
-//  [img sd_setImageWithURL:[NSURL URLWithString:albumModel.picUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
-//    SDWebImageContextImageTransformer: transformer, SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200, 200)), SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
-//  }];
-//  img.layer.cornerRadius = 8;
-//  img.clipsToBounds = YES;
-//
-//  UILabel *title = [[UILabel alloc] init];
-//  title.text = [song.name copy];
-//
-//  UILabel *author = [[UILabel alloc] init];
-//  ArtistModel* artist = [song.artists objectAtIndex:0];
-//  author.text = [artist.name copy];
-//  author.font = [UIFont systemFontOfSize:12];
-//
-//  UIButton *like = [UIButton buttonWithType:UIButtonTypeCustom];
-//  [like setImage:[UIImage imageNamed:(song.isLiked ? @"selectHeart.png" : @"heart.png")] forState:UIControlStateNormal];
-//  like.tag = index;
-//  [like addTarget:self action:@selector(likeAction:) forControlEvents:UIControlEventTouchUpInside];
-//
-//  [view addSubview:img];
-//  [view addSubview:title];
-//  [view addSubview:author];
-//  [view addSubview:like];
-//
-//  [img mas_makeConstraints:^(MASConstraintMaker *make) {
-//    make.left.top.equalTo(view).offset(20);
-//    make.width.height.mas_equalTo(60);
-//  }];
-//
-//  [title mas_makeConstraints:^(MASConstraintMaker *make) {
-//    make.left.equalTo(img.mas_right).offset(10);
-//    make.top.equalTo(img);
-//  }];
-//
-//  [author mas_makeConstraints:^(MASConstraintMaker *make) {
-//    make.left.equalTo(title);
-//    make.top.equalTo(title.mas_bottom).offset(5);
-//  }];
-//
-//  [like mas_makeConstraints:^(MASConstraintMaker *make) {
-//    make.centerY.equalTo(img);
-//    make.right.equalTo(view).offset(-20);
-//    make.width.height.mas_equalTo(30);
-//  }];
-//
-//  return view;
-//}
-//
-//- (void)likeAction:(UIButton *)btn {
-//  if (self.likeBlock) {
-//    self.likeBlock(btn.tag);
-//  }
-//}
-//
-//- (void)pressHeart:(UIButton* )button {
-//  if (button.selected == NO) {
-//    [button setImage:[UIImage imageNamed:@"heart.png"] forState:UIControlStateNormal];
-//    button.selected = YES;
-//  } else {
-//    button.selected = NO;
-//    [button setImage:[UIImage imageNamed:@"selectedHeart.png"] forState:UIControlStateNormal];
-//  }
-//}
-
-
-- (void)awakeFromNib {
-  [super awakeFromNib];
-  // Initialization code
-}
-
-- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
-  [super setSelected:selected animated:animated];
-
-  // Configure the view for the selected state
-}
-
-
 
 @end
-
-
-

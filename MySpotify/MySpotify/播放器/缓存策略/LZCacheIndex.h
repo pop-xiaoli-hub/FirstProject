@@ -27,6 +27,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setTotalLength:(NSUInteger)length forKey:(NSString *)key;
 - (NSNumber *)totalLengthForKey:(NSString *)key;
 
+/// 该 key 当前已缓存的总字节数（所有已缓存 range 长度之和）
+- (NSUInteger)cachedTotalLengthForKey:(NSString *)key;
+
 - (void)clearForKey:(NSString *)key;
 @end
 NS_ASSUME_NONNULL_END

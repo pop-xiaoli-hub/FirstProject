@@ -10,7 +10,8 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface LZResourceLoader : NSObject<AVAssetResourceLoaderDelegate>
-
+/// 单例，供 MusicPlayerManager 等设置到 AVURLAsset.resourceLoader
++ (instancetype)sharedLoader;
 @end
 
 NS_ASSUME_NONNULL_END

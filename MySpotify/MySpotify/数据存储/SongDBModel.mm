@@ -12,6 +12,7 @@
 @implementation SongDBModel
 WCDB_IMPLEMENTATION(SongDBModel)
 WCDB_SYNTHESIZE(songId)
+WCDB_SYNTHESIZE(lastPlayTimestamp)
 WCDB_SYNTHESIZE(url)
 WCDB_SYNTHESIZE(picUrl)
 WCDB_SYNTHESIZE(songName)
