@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0D43C68C2EF934A5004543D6 /* heart.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D43C68B2EF934A5004543D6 /* heart.png */; };
 		0D43C68E2EF93FCA004543D6 /* selectedHeart.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D43C68D2EF93FCA004543D6 /* selectedHeart.png */; };
+		0D5948C12F5981EB008BEC69 /* flower.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D5948C02F5981EB008BEC69 /* flower.png */; };
 		0D5B9D332F1901900036C3AB /* back.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0D5B9D322F19018F0036C3AB /* back.jpg */; };
 		0D5B9D352F1902700036C3AB /* header.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0D5B9D342F1902700036C3AB /* header.jpg */; };
 		0D5B9D3C2F1908800036C3AB /* b4.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D5B9D3B2F1908800036C3AB /* b4.png */; };
@@ -98,6 +99,7 @@
 /* Begin PBXFileReference section */
 		0D43C68B2EF934A5004543D6 /* heart.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = heart.png; sourceTree = "<group>"; };
 		0D43C68D2EF93FCA004543D6 /* selectedHeart.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = selectedHeart.png; sourceTree = "<group>"; };
+		0D5948C02F5981EB008BEC69 /* flower.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = flower.png; sourceTree = "<group>"; };
 		0D5B9D322F19018F0036C3AB /* back.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = back.jpg; sourceTree = "<group>"; };
 		0D5B9D342F1902700036C3AB /* header.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = header.jpg; sourceTree = "<group>"; };
 		0D5B9D382F1908800036C3AB /* b6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = b6.png; sourceTree = "<group>"; };
@@ -286,6 +288,7 @@
 		0D736A212EBCC074008576F5 = {
 			isa = PBXGroup;
 			children = (
+				0D5948C02F5981EB008BEC69 /* flower.png */,
 				0D3E1EEE2F55A75D002C9843 /* pictures */,
 				0D736AE92EBCD756008576F5 /* Rackety DEMO.otf */,
 				0D736A2C2EBCC074008576F5 /* MySpotify */,
@@ -515,6 +518,7 @@
 				0DAD73052EE4281500C4106F /* nextSong.png in Resources */,
 				0D736B5D2EBF513B008576F5 /* cancleButton.png in Resources */,
 				0D7EBE7D2F4AFBD000FF6568 /* selectImage.png in Resources */,
+				0D5948C12F5981EB008BEC69 /* flower.png in Resources */,
 				0D5BA0692F2C63500036C3AB /* b1.png in Resources */,
 				0D5BA07F2F305E0B0036C3AB /* 下载中.png in Resources */,
 				0D43C68C2EF934A5004543D6 /* heart.png in Resources */,
@@ -658,6 +662,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TKZQ64TP4Z;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MySpotify/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -689,6 +694,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TKZQ64TP4Z;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MySpotify/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -900,6 +906,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TKZQ64TP4Z;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MySpotifyWidgetExtension/Info.plist;
@@ -926,6 +933,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TKZQ64TP4Z;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MySpotifyWidgetExtension/Info.plist;

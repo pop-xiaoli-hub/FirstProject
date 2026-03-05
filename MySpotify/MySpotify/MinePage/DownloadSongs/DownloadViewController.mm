@@ -14,6 +14,7 @@
 #import "PlaylistManager.h"
 #import "SongPlayingModel.h"
 #import "MusicPlayerManager.h"
+#import "MusicPlayerController.h"
 @interface DownloadViewController ()<UITableViewDelegate, UITableViewDataSource>
 @property (nonatomic, strong)UIImageView* backView;
 @property (nonatomic, strong)UIVisualEffectView* blurView;
@@ -88,6 +89,16 @@
       @"index" : @(0),
       @"type" : @"download"
   }];
+  [self jumpToPlayerViewController];
+}
+
+- (void)jumpToPlayerViewController {
+  MusicPlayerController* vc = [[MusicPlayerController alloc] init];
+  PlaylistManager* manager = [PlaylistManager shared];
+  vc.musicPlayList = manager.playlist;
+  vc.currentIndex = manager.currentIndex;
+  vc.isplaying = YES;
+  [self presentViewController:vc animated:YES completion:nil];
 }
 
 - (void)playAllSongs:(UIButton* )button {

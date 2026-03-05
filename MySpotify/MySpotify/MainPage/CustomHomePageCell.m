@@ -42,7 +42,7 @@
     } else if ([reuseIdentifier isEqualToString:@"cell02"]) {
       self.artistsLabel = [[UILabel alloc] init];
       self.artistsLabel.textColor = [UIColor whiteColor];
-      self.artistsLabel.backgroundColor =  [UIColor colorWithRed:138/225.0f green:138/225.0f blue:138/225.0f alpha:0.1];
+      self.artistsLabel.backgroundColor =  [UIColor clearColor];
       [self.contentView addSubview:self.artistsLabel];
       [self.artistsLabel mas_makeConstraints:^(MASConstraintMaker *make) {
               make.top.equalTo(self.contentView.mas_top).offset(5);
@@ -74,7 +74,7 @@
     } else if ([reuseIdentifier isEqualToString:@"cell04"]) {
       self.commendLabel = [[UILabel alloc] init];
       self.commendLabel.textColor = [UIColor whiteColor];
-      self.commendLabel.backgroundColor =  [UIColor colorWithRed:138/225.0f green:138/225.0f blue:138/225.0f alpha:0.1];
+      self.commendLabel.backgroundColor =  [UIColor clearColor];
       [self.contentView addSubview:self.commendLabel];
       [self.commendLabel mas_makeConstraints:^(MASConstraintMaker *make) {
               make.top.equalTo(self.contentView.mas_top).offset(5);
@@ -106,7 +106,7 @@
     } else if ([reuseIdentifier isEqualToString:@"cell06"]) {
       self.categoryLabel = [[UILabel alloc] init];
       self.categoryLabel.textColor = [UIColor whiteColor];
-      self.categoryLabel.backgroundColor =  [UIColor colorWithRed:138/225.0f green:138/225.0f blue:138/225.0f alpha:0.1];
+      self.categoryLabel.backgroundColor =  [UIColor clearColor];
       [self.contentView addSubview:self.categoryLabel];
       [self.categoryLabel mas_makeConstraints:^(MASConstraintMaker *make) {
               make.top.equalTo(self.contentView.mas_top).offset(5);

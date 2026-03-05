@@ -81,21 +81,21 @@
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-//  SongModel* song = [self.songs objectAtIndex:indexPath.row];
-//  ArtistModel* artist = [song.ar objectAtIndex:0];
-//  NSLog(@"id = %lld, imageUrl = %@, artistName = %@", song.id, self.playlistModel.coverImgUrl, artist.name);
-//  SongPlayingModel* playingModel = [[SongPlayingModel alloc] initWithSongName:song.name andArtistName:artist.name andSongId:song.id andPicUrl:self.playlistModel.coverImgUrl andMusicSource:@"null" andIsDownloaded:NO];
-//  PlaylistManager* listManager = [PlaylistManager shared];
-//  for (SongPlayingModel* model in listManager.playlist) {
-//    if (model.songId == song.id) {
-//      [listManager.playlist removeObject:model];
-//    }
-//  }
-//  [listManager.playlist insertObject:playingModel atIndex:0];
-//  [[NSNotificationCenter defaultCenter] postNotificationName:@"playlistSong" object:nil userInfo:@{
-//      @"key" : @(1)
-//  }];
-//  [self jumpToPlayerViewController];
+  SongModel* song = [self.songs objectAtIndex:indexPath.row];
+  ArtistModel* artist = [song.ar objectAtIndex:0];
+  NSLog(@"id = %lld, imageUrl = %@, artistName = %@", song.id, self.playlistModel.coverImgUrl, artist.name);
+  SongPlayingModel* playingModel = [[SongPlayingModel alloc] initWithSongName:song.name andArtistName:artist.name andSongId:song.id andPicUrl:self.playlistModel.coverImgUrl andMusicSource:@"null" andIsDownloaded:NO];
+  PlaylistManager* listManager = [PlaylistManager shared];
+  for (SongPlayingModel* model in listManager.playlist) {
+    if (model.songId == song.id) {
+      [listManager.playlist removeObject:model];
+    }
+  }
+  [listManager.playlist insertObject:playingModel atIndex:0];
+  [[NSNotificationCenter defaultCenter] postNotificationName:@"playlistSong" object:nil userInfo:@{
+      @"key" : @(1)
+  }];
+  [self jumpToPlayerViewController];
 }
 
 - (void)viewWillAppear:(BOOL)animated {

@@ -17,6 +17,8 @@
 #import "DownloadViewController.h"
 #import "SongDBModel+WCTTableCoding.h"
 #import "SongDBModel.h"
+#import "MusicPlayerController.h"
+#import "PlaylistManager.h"
 @interface MinePageController  ()<UITableViewDelegate,UITableViewDataSource>
 @property (nonatomic, strong) UITableView *tableView;
 @property (nonatomic, strong) UserModel *user;
@@ -39,6 +41,16 @@
   [self setupTableView];
   [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadSongs:) name:@"reloadSongs" object:nil];
 }
+
+- (void)jumpToPlayerViewController {
+  MusicPlayerController* vc = [[MusicPlayerController alloc] init];
+  PlaylistManager* manager = [PlaylistManager shared];
+  vc.musicPlayList = manager.playlist;
+  vc.currentIndex = manager.currentIndex;
+  vc.isplaying = YES;
+  [self presentViewController:vc animated:YES completion:nil];
+}
+
 
 - (void)reloadSongs:(NSNotification *)notification {
   [self fetchData];
@@ -183,6 +195,9 @@
     cell.buttonClickBlock = ^(UIButton *button) {
       __strong typeof(weakSelf) strongSelf = weakSelf;
       if (strongSelf && button.tag == 101) [strongSelf handleDownloadButton:button];
+    };
+    cell.cacheSongButtonBlock = ^{
+      [self jumpToPlayerViewController];
     };
     cell.localSongArray = self.localSongArray ?: [NSMutableArray array];
     return cell;

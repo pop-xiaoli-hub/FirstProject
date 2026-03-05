@@ -41,6 +41,10 @@
     vc3.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"" image:image3 tag:103];
 
     tab.viewControllers = @[nav1, nav2, nav3];
+    // 选中态背景：以选中按钮中心为圆心的圆，包裹按钮
+//  UIColor *highlightColor = [UIColor colorWithWhite:1.0 alpha:0.18];
+//    tab.tabBar.selectionIndicatorImage = [self selectionIndicatorCircleImageWithColor:highlightColor];
+    tab.tabBar.selectionIndicatorImage = [[UIImage imageNamed:@"flower.png"] imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
     tab.view.backgroundColor = [UIColor blackColor];
     self.window.rootViewController = tab;
 
@@ -79,6 +83,25 @@
   // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
   // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
   // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
+}
+
+- (UIImage *)selectionIndicatorCircleImageWithColor:(UIColor *)color {
+  CGFloat width = [UIScreen mainScreen].bounds.size.width / 3.0; // 一个 tab 的宽度
+  CGFloat height = 45;
+  CGFloat radius = 25; // 半径加大，完全包住图标（含屋顶等尖角）
+  CGFloat centerYOffset = 0;   // 圆心上移，与系统图标实际位置对齐（图标偏上）
+  CGRect rect = CGRectMake(0, 0, width, height);
+  UIGraphicsBeginImageContextWithOptions(rect.size, NO, 0);
+  CGContextRef ctx = UIGraphicsGetCurrentContext();
+  CGPoint center = CGPointMake(width / 2.0, height / 2.0 + centerYOffset);
+  CGRect circleRect = CGRectMake(center.x - radius, center.y - radius, radius * 2, radius * 2);
+  CGContextAddEllipseInRect(ctx, circleRect);
+  [color setFill];
+  CGContextFillPath(ctx);
+
+  UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+  UIGraphicsEndImageContext();
+  return image;
 }
 
 

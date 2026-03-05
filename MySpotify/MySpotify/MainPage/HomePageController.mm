@@ -143,21 +143,6 @@
     tap.numberOfTouchesRequired = 1;
     [weakSelf.floatingPlayerView.trackHeaderView addGestureRecognizer:tap];
     [weakSelf.floatingPlayerView.buttonOfPlayerSwitches addTarget:weakSelf action:@selector(pressPlayerSwitches:) forControlEvents:UIControlEventTouchUpInside];
-    //      RecommendedSongsItemModel* item = [weakSelf.viewModel.arrayOfSomeRecommendedSongs objectAtIndex:0];
-    //      SongModel* songModel = item.song;
-    //      AlbumModel* albumModel = songModel.album;
-    //      NSLog(@"12345%@", songModel.audioResources);
-    //      weakSelf.currentSongModel = songModel;
-    //      //weakSelf.myView.trackHeaderView.image = songModel.image;
-    //      SDImageResizingTransformer *transformer =
-    //      [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200) scaleMode:SDImageScaleModeAspectFill];
-    //      [weakSelf.floatingPlayerView.trackHeaderView sd_setImageWithURL:[NSURL URLWithString:albumModel.picUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
-    //        SDWebImageContextImageTransformer: transformer, SDWebImageContextImageThumbnailPixelSize: @(CGSizeMake(200,200)), SDWebImageContextImageForceDecodePolicy: @(SDImageForceDecodePolicyNever)
-    //      }];
-    //      weakSelf.floatingPlayerView.trackNameLabel.text = [songModel.name copy];
-    //      ArtistModel* artist = [songModel.artists objectAtIndex:0];
-    //      weakSelf.floatingPlayerView.trackArtistNameLabel.text = [artist.name copy];
-    //    }];
   };
   self.viewModel.endRefreshing = ^{
     [weakSelf.refreshControl endRefreshing];
@@ -263,14 +248,6 @@
     self.floatingPlayerView.trackNameLabel.text = [self.currentSongModel.name copy];
     self.floatingPlayerView.trackArtistNameLabel.text = [self.currentSongModel.name copy];
   }
-  //  self.playList = [NSMutableArray arrayWithArray:array];
-  //  SongDBModel* dbSong = self.playList[self.currentPlayIndex];
-  //  SongModel* song = [SongModel new];
-  //  song.id = dbSong.songId;
-  //  song.name = [dbSong.songName copy];
-  //  song.picUrl = [dbSong.picUrl copy];
-  //  song.artistName = [dbSong.artistName copy];
-  //  [self.viewModel fetchSongData:song];
 }
 
 - (void)playSong:(UIButton* )button {
@@ -292,9 +269,6 @@
       PlaylistManager* manager = [PlaylistManager shared];
       vc.musicPlayList = manager.playlist;
       vc.currentIndex = manager.currentIndex;
-      //      vc.player = self.player;
-      //      vc.item = self.item;
-
       vc.isplaying = self.floatingPlayerView.buttonOfPlayerSwitches.selected;
       //[vc pressButtonOfSwitch:vc.myView.centerPage.switchButton];
       [self presentViewController:vc animated:YES completion:nil];

@@ -5,6 +5,8 @@
 //  Created by xiaoli pop on 2025/12/8.
 //
 
+// NSString* url = [NSString stringWithFormat: @"http://localhost:3000/song/url/v1?id=%ld&level=standard", model.songId];
+
 #import "SpotifyService.h"
 #import "NetworkManager.h"
 #import <YYModel.h>
@@ -25,11 +27,14 @@
 #import "SongDBModel+WCTTableCoding.h"
 #import "SongPlayingModel.h"
 @implementation SpotifyService
+
 +(instancetype)sharedInstance {
   static SpotifyService* service;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
     service = [[self alloc] init];
+    service.baseUrl = @"https://1390963969-2g6ivueiij.ap-guangzhou.tencentscf.com";
+    //service.baseUrl = @"http://localhost:3000";
   });
   return service;
 }
@@ -53,7 +58,7 @@
 - (void)fetchSongResources:(SongPlayingModel* )model completion:(void(^)( BOOL temp))completion {
   NetworkManager* manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
-  NSString* url = [NSString stringWithFormat: @"http://localhost:3000/song/url/v1?id=%ld&level=standard", model.songId];
+  NSString* url = [NSString stringWithFormat: @"%@/song/url/v1?id=%ld&level=standard",self.baseUrl, model.songId];
   [manager GET:url parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id _Nullable responseObject) {
     NSArray *dataArray = responseObject[@"data"];
     if (dataArray.count > 0) {
@@ -73,7 +78,7 @@
   NetworkManager* manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
   int keyNumber = arc4random_uniform(200);
-  NSString* urlString = [NSString stringWithFormat:@"http://localhost:3000/artist/list?area=-1&type=-1&offset=%d&limit=8", keyNumber];
+  NSString* urlString = [NSString stringWithFormat:@"%@/artist/list?area=-1&type=-1&offset=%d&limit=8", self.baseUrl, keyNumber];
   [manager GET:urlString parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id _Nullable responseObject) {
     RecommendationsOfArtistsModel* responseModel = [RecommendationsOfArtistsModel yy_modelWithJSON:responseObject];
     NSArray* array = responseModel.artists;
@@ -89,7 +94,7 @@
   NetworkManager* manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
   int num = arc4random_uniform(50);
-  NSString *urlString = [NSString stringWithFormat:@"http://localhost:3000/top/playlist?offset=%d&limit=8", num];
+  NSString *urlString = [NSString stringWithFormat:@"%@/top/playlist?offset=%d&limit=8", self.baseUrl, num];
   [manager GET:urlString parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id _Nullable responseObject) {
     NSLog(@"专辑%@",responseObject);
     RecommendationsOfAlbumsModel* responseModel = [RecommendationsOfAlbumsModel yy_modelWithJSON:responseObject];
@@ -106,7 +111,7 @@
 - (void)fetchRecommendedSongs:(void(^)(NSArray* arrayOfSongs, NSError* error))completion {
   NetworkManager* manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
-  NSString *url = @"http://localhost:3000/personalized/newsong?limit=30";
+  NSString *url = [NSString stringWithFormat:@"%@/personalized/newsong?limit=30", self.baseUrl];
   [manager GET:url parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id _Nullable responseObject) {
     RecommendationsResponseModel *responseModel =
     [RecommendationsResponseModel yy_modelWithJSON:responseObject];
@@ -137,7 +142,7 @@
   NetworkManager* manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
   //NSString *url = @"http://localhost:3000/personalized/newsong?limit=30";
-  NSString* url = [NSString stringWithFormat:@"http://localhost:3000/personalized/newsong?limit=%ld", number];
+  NSString* url = [NSString stringWithFormat:@"%@/personalized/newsong?limit=%ld", self.baseUrl, number];
   //  NSString* url = [NSString stringWithFormat:@"http://localhost:3000/playlist/track/all?id=2884035&limit=%ld", number];
   [manager GET:url parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id _Nullable responseObject) {
     RecommendationsResponseModel *responseModel =
@@ -162,7 +167,7 @@
 - (void)fetchSongResources:(SongModel* )model {
   NetworkManager* manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
-  NSString* url = [NSString stringWithFormat: @"http://localhost:3000/song/url/v1?id=%lld&level=standard", model.id];
+  NSString* url = [NSString stringWithFormat: @"%@/song/url/v1?id=%lld&level=standard", self.baseUrl, model.id];
   [manager GET:url parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id _Nullable responseObject) {
     NSArray *dataArray = responseObject[@"data"];
     if (dataArray.count > 0) {
@@ -180,7 +185,7 @@
 -  (void)fetchCommentsOfSongs:(SongModel* )songModel withCompletion:(void(^)(NSError* error))completion {
   NetworkManager* manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
-  NSString* url = [NSString stringWithFormat:@"http://localhost:3000/comment/music?id=%lld&limit=1",songModel.id];
+  NSString* url = [NSString stringWithFormat:@"%@/comment/music?id=%lld&limit=1", self.baseUrl, songModel.id];
   [manager GET:url parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id _Nullable responseObject) {
     CommentListResponseModel* responseModel = [CommentListResponseModel yy_modelWithJSON:responseObject];
     CommentModel* model = responseModel.comments.firstObject;
@@ -205,11 +210,7 @@
   int limit = 6;
   int randomOffset = arc4random_uniform(30);
 
-  NSString *urlString = [NSString stringWithFormat:
-                           @"http://localhost:3000/personalized?limit=%d&offset=%d",
-                         limit,
-                         randomOffset
-  ];
+  NSString *urlString = [NSString stringWithFormat: @"%@/personalized?limit=%d&offset=%d", self.baseUrl, limit, randomOffset];
 
   [manager GET:urlString parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask *task, id responseObject) {
     //    NSLog(@"歌单%@", responseObject);
@@ -237,7 +238,7 @@
   NetworkManager *manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
 
-  NSString *url = @"http://localhost:3000/search";
+  NSString *url = [NSString stringWithFormat:@"%@/search", self.baseUrl];
   NSDictionary *params = @{
     @"keywords": str,
     @"type": @(1),
@@ -258,8 +259,7 @@
 - (void)fetchPlaylistDetailWithId:(NSString *)playlistId completion:(void(^)(id responseObject, NSError *error))completion {
   NetworkManager *manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
-
-  NSString *url = @"http://localhost:3000/playlist/detail";
+  NSString *url = [NSString stringWithFormat:@"%@/playlist/detail", self.baseUrl];
   NSDictionary *params = @{
     @"id": playlistId
   };
@@ -285,7 +285,7 @@
   NetworkManager *manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer =
   [AFJSONRequestSerializer serializer];
-  NSString *url = @"http://localhost:3000/song/detail";
+  NSString *url = [NSString stringWithFormat:@"%@/song/detail", self.baseUrl];
   NSDictionary *params = @{ @"ids" : ids };
   [manager GET:url parameters:params headers:nil progress:nil success:^(NSURLSessionDataTask *task, id responseObject) {
     NSArray *songsJSON = responseObject[@"songs"];
@@ -304,9 +304,7 @@
 
   NetworkManager *manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
-
-  NSString *url = @"http://localhost:3000/artists";
-
+  NSString *url = [NSString stringWithFormat:@"%@/artists", self.baseUrl];
   NSDictionary *params = @{
     @"id" : @(artistId)
   };
@@ -327,7 +325,7 @@
 - (void)fetchAllCommentsOfSongs:(SongModel *)songModel offset:(NSInteger)offset limit:(NSInteger)limit withCompletion:(void(^)(id responseObject, NSError *error))completion {
   NetworkManager *manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
-  NSString *url = [NSString stringWithFormat:@"http://localhost:3000/comment/music?id=%lld&limit=%ld&offset=%ld", songModel.id, (long)limit, (long)offset];
+  NSString *url = [NSString stringWithFormat:@"%@/comment/music?id=%lld&limit=%ld&offset=%ld", self.baseUrl, songModel.id, (long)limit, (long)offset];
 
   [manager GET:url parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
     completion(responseObject, nil);
@@ -337,10 +335,22 @@
   }];
 }
 
+- (void)fetchSongLyrics:(NSString* )songId withCompletion:(void(^)(id responseObject, NSError* error))completion {
+  NetworkManager* manager = [NetworkManager sharedmanager];
+  long long songid = [songId integerValue];
+  manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
+  NSString* url = [NSString stringWithFormat:@"%@/lyric?id=%lld",self.baseUrl, songid];
+  [manager GET:url parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id _Nullable responseObject) {
+      completion(responseObject, nil);
+    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+      completion(nil, error);
+    }];
+}
+
 - (void)searchSongs:(NSString *)keywords withCompletion:(void(^)(NSArray *songs, NSError *error))completion {
   NetworkManager *manager = [NetworkManager sharedmanager];
   manager.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
-  NSString *url = @"http://localhost:3000/search";
+  NSString *url = [NSString stringWithFormat:@"%@/search", self.baseUrl];
   NSDictionary *params = @{
     @"keywords": keywords,
     @"type": @(1),

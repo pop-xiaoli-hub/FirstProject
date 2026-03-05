@@ -67,7 +67,7 @@
   self.tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
   self.tableView.delegate = self;
   self.tableView.dataSource = self;
-  self.tableView.estimatedRowHeight = 100;
+  self.tableView.estimatedRowHeight = 60;
   self.tableView.rowHeight = UITableViewAutomaticDimension;
   self.tableView.backgroundColor = UIColor.clearColor;
   self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;

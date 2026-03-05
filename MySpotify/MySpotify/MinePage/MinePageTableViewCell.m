@@ -9,7 +9,10 @@
 #import <SDWebImage/SDWebImage.h>
 #import "ScrollTableViewCell.h"
 #import "SongDBModel.h"
+#import "PlaylistManager.h"
+#import "SongPlayingModel.h"
 #import "MinePlaylistCollectionCell.h"
+#import "MusicPlayerManager.h"
 
 static NSString *const kPlaylistCellId = @"MinePlaylistCollectionCell";
 static const CGFloat kPlaylistItemSize = 110;
@@ -197,6 +200,8 @@ static UIColor *spotifyGreen(void) {
 
 #pragma mark - UICollectionView
 
+
+
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
   return _playlistData.count;
 }
@@ -255,6 +260,34 @@ static UIColor *spotifyGreen(void) {
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
   return 72;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+  SongDBModel* model = [self.localSongArray objectAtIndex:indexPath.row];
+  PlaylistManager* listManager = [PlaylistManager shared];
+  SongPlayingModel* playingSong = [[SongPlayingModel alloc] initWithSongName:model.songName andArtistName:model.artistName andSongId:model.songId andPicUrl:model.picUrl andMusicSource:@"null" andIsDownloaded:NO];
+  for (int i = 0; i < listManager.playlist.count; i++) {
+    SongPlayingModel* m = [listManager.playlist objectAtIndex:i];
+    if (m.songId == playingSong.songId) {
+      [listManager.playlist removeObject:m];
+    }
+    NSLog(@"name: %@", m.name);
+  }
+  [listManager.playlist insertObject:playingSong atIndex:0];
+  [[MusicPlayerManager sharedManager] playWithSong:playingSong];
+  [[NSNotificationCenter defaultCenter] postNotificationName:@"playDownloadSong" object:nil userInfo:@{
+      @"index" : @(0),
+      @"type" : @"download"
+  }];
+  if (self.cacheSongButtonBlock) {
+    self.cacheSongButtonBlock();
+  }
+}
+
+
+
+- (void)dealloc {
+  [[NSNotificationCenter defaultCenter] removeObserver:self name:@"playDownloadSong" object:nil];
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {

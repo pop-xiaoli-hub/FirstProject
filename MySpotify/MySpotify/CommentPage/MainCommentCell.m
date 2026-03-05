@@ -177,12 +177,12 @@
   [self.contentTextView mas_makeConstraints:^(MASConstraintMaker *make) {
     make.left.equalTo(self.userNameLabel);
     make.right.equalTo(self.contentView).offset(-12);
-    make.top.equalTo(self.headerView.mas_bottom).offset(8);
+    make.top.equalTo(self.headerView.mas_bottom).offset(6);
   }];
 
   [self.foldButton mas_makeConstraints:^(MASConstraintMaker *make) {
     make.left.equalTo(self.contentTextView);
-    make.top.equalTo(self.contentTextView.mas_bottom).offset(4);
+    make.top.equalTo(self.contentTextView.mas_bottom).offset(2);
   }];
   //
   //  [self.buttonOfLiked mas_makeConstraints:^(MASConstraintMaker *make) {
@@ -198,7 +198,7 @@
   //  }];
   [self.buttonOfExpand mas_makeConstraints:^(MASConstraintMaker *make) {
     make.right.equalTo(self.contentView).offset(-12);
-    make.top.equalTo(self.foldButton.mas_bottom).offset(6);
+    make.top.equalTo(self.foldButton.mas_bottom).offset(4);
     make.width.mas_equalTo(70);
     make.height.mas_equalTo(20);
   }];
@@ -206,12 +206,12 @@
   [self.replyBgView mas_makeConstraints:^(MASConstraintMaker *make) {
     make.left.equalTo(self.contentTextView);
     make.right.equalTo(self.contentView).offset(-12);
-    make.top.equalTo(self.buttonOfExpand.mas_bottom).offset(6);
-    make.bottom.equalTo(self.contentView).offset(-10);
+    make.top.equalTo(self.buttonOfExpand.mas_bottom).offset(4);
+    make.bottom.equalTo(self.contentView).offset(-6);
   }];
 
   [self.replyStackView mas_makeConstraints:^(MASConstraintMaker *make) {
-    make.edges.equalTo(self.replyBgView).insets(UIEdgeInsetsMake(6, 6, 6, 6));
+    make.edges.equalTo(self.replyBgView).insets(UIEdgeInsetsMake(0, 6, 0, 6));
   }];
 
 }
