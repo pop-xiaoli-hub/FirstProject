@@ -33,6 +33,10 @@
 @property (nonatomic, strong) SongListFooterView *footerView;
 //@property (nonatomic, assign)NSInteger page;
 @property (nonatomic, strong)CommentPager* pager;
+
+@property (nonatomic, strong)NSMutableArray* heightTasks;
+
+
 @end
 
 @implementation CommentViewController
@@ -45,13 +49,11 @@
   [self createTitleLabel];
   [self createBackButton];
   [self createCommentButton];
-
   [self createPager];
   [self createTableView];
   [self setUpTableHeaderView];
   [self setupTableFooterView];
   [self loadComments];
-  // Do any additional setup after loading the view.
 }
 
 - (void)createPager {
@@ -61,19 +63,20 @@
   self.pager.offset = 0;
   self.pager.hasMore = YES;
   self.pager.isLoading = NO;
+  _heightTasks = [NSMutableArray array];
 }
 
 - (void)createTableView {
   self.tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
   self.tableView.delegate = self;
   self.tableView.dataSource = self;
+  //实现自适应行高的关键，先预估计算，在动态计算，设置预估行高时，我们应该尽量接近平均值，避免卡顿。
   self.tableView.estimatedRowHeight = 60;
   self.tableView.rowHeight = UITableViewAutomaticDimension;
   self.tableView.backgroundColor = UIColor.clearColor;
   self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
-
+  self.tableView.contentInset = UIEdgeInsetsMake(8, 0, 24, 0);
   [self.tableView registerClass:[MainCommentCell class] forCellReuseIdentifier:@"cellOfComment"];
-
   [self.view addSubview:self.tableView];
   [self.tableView mas_makeConstraints:^(MASConstraintMaker *make) {
     make.left.right.equalTo(self.view);
@@ -135,7 +138,7 @@
   [self.commentsArray removeAllObjects];
   [self.commentsArray addObjectsFromArray:responseModel.hotComments];
   [self.commentsArray addObjectsFromArray:responseModel.comments];
-  CGFloat contentWidth = [UIScreen mainScreen].bounds.size.width - 12 - 40 - 8 - 12; // left padding + avatar + spacing + right padding
+  CGFloat contentWidth = [UIScreen mainScreen].bounds.size.width - 72;
   for (ZLCommentModel *model in self.commentsArray) {
     model.needFold = [self isTextViewExceedThreeLines:model.content width:contentWidth];
     model.expandedContent = NO;
@@ -154,9 +157,9 @@
   return self.commentsArray.count;
 }
 
-//- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
-//  return 120;
-//}
+
+
+#pragma mark -高度缓存
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
   MainCommentCell *cell =
@@ -169,9 +172,28 @@
   return cell;
 }
 
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+  ZLCommentModel* model = [self.commentsArray objectAtIndex:indexPath.row];
+  if (model.cellHeight > 0) {
+    NSLog(@"存在高度缓存：%f", model.cellHeight);
+    return model.cellHeight;
+  } else {
+    NSLog(@"未缓存cell高度");
+    return UITableViewAutomaticDimension;
+  }
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
+  CGFloat height = cell.frame.size.height;
+  ZLCommentModel* model = [self.commentsArray objectAtIndex:indexPath.row];
+  model.cellHeight = height;
+}
+
+
 - (void)pressExpandReplies:(UIButton *)button {
     ZLCommentModel *model = self.commentsArray[button.tag];
     model.showReplies = !model.showReplies;
+    model.cellHeight = 0;  // 清除高度缓存，让该行按新内容重新计算高度
     [self.tableView beginUpdates];
     [self.tableView reloadRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:button.tag inSection:0]] withRowAnimation:UITableViewRowAnimationAutomatic];
     [self.tableView endUpdates];
@@ -182,7 +204,7 @@
 - (void)pressFoldButton:(UIButton *)button {
     ZLCommentModel *model = self.commentsArray[button.tag];
     model.expandedContent = !model.expandedContent;
-
+    model.cellHeight = 0;  // 清除高度缓存，让该行按新内容重新计算高度
     [self.tableView beginUpdates];
     [self.tableView reloadRowsAtIndexPaths:@[ [NSIndexPath indexPathForRow:button.tag inSection:0]] withRowAnimation:UITableViewRowAnimationAutomatic];
     [self.tableView endUpdates];
@@ -196,6 +218,8 @@
   }
   self.tableView.tableHeaderView = self.headerView;
 }
+
+#pragma mark -评论是否需要折叠
 
 - (BOOL)isTextViewExceedThreeLines:(NSString *)text width:(CGFloat)width {
   NSTextStorage *storage = [[NSTextStorage alloc] initWithString:text attributes:@{NSFontAttributeName: [UIFont systemFontOfSize:17]}];//管理文本内容和属性
@@ -214,9 +238,6 @@
   }];
   return lines > 3;
 }
-
-
-
 
 - (void)createCommentButton {
   UIView *shadowView = [[UIView alloc] init];
