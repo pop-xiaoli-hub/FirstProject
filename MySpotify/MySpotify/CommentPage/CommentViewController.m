@@ -17,6 +17,7 @@
 #import "ZLCommentModel.h"
 #import "CommentPager.h"
 #import "SongListFooterView.h"
+//#import "LZIdleTaskQueue.h"
 @interface CommentViewController ()<UITableViewDelegate, UITableViewDataSource>
 @property (nonatomic, strong)UIImageView* backView;
 @property (nonatomic, strong)UIVisualEffectView* blurView;
@@ -33,7 +34,7 @@
 @property (nonatomic, strong) SongListFooterView *footerView;
 //@property (nonatomic, assign)NSInteger page;
 @property (nonatomic, strong)CommentPager* pager;
-
+//@property (nonatomic, strong)LZIdleTaskQueue* idleQueue;
 @property (nonatomic, strong)NSMutableArray* heightTasks;
 
 
@@ -188,6 +189,55 @@
   ZLCommentModel* model = [self.commentsArray objectAtIndex:indexPath.row];
   model.cellHeight = height;
 }
+
+
+
+
+
+//#pragma mark -UITableView预缓存高度实实现
+//
+//- (MainCommentCell*)sizingCell {
+//  static MainCommentCell* cell;
+//  if (!cell) {
+//    cell = [self.tableView dequeueReusableCellWithIdentifier:@"cellOfComment"];
+//  }
+//  return cell;
+//}
+//
+//- (CGFloat)heightForModel:(ZLCommentModel* )model width:(CGFloat)width {
+//  MainCommentCell* cell = [self sizingCell];
+//  [cell prepareForReuse];
+//  [self configureCell:cell withModel:model];
+//  cell.bounds = (CGRect) {
+//    CGPointZero,{
+//      width, CGFLOAT_MAX
+//    }
+//  };
+//  [cell setNeedsLayout];
+//  [cell layoutIfNeeded];
+//  CGSize size = [cell.contentView systemLayoutSizeFittingSize:UILayoutFittingCompressedSize];
+//  return size.height;
+//}
+//
+//- (void)configureCell:(MainCommentCell* )cell withModel:(ZLCommentModel* )model {
+//  //
+//}
+////
+//- (void)preCacheHeightAroundIndex:(NSInteger)start count:(NSInteger)count {
+//  CGFloat width = CGRectGetWidth(self.tableView.bounds);
+//  for (int i = 0; i < self.commentsArray.count; i++) {
+//    __weak typeof (self) weakSelf = self;
+//    ZLCommentModel* model = [self.commentsArray objectAtIndex:i];
+//    if (model.cellHeight) {
+//      continue;
+//    }
+//    [self.idleQueue addTask:^{
+//      CGFloat h = [weakSelf heightForModel:model width:width];
+//      model.cellHeight = h;
+//    }];
+//  }
+//}
+//
 
 
 - (void)pressExpandReplies:(UIButton *)button {

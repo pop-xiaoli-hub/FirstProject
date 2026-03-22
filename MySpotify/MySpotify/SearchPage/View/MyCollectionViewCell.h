@@ -17,7 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong)UIImageView* headerView;
 @property (nonatomic, strong)UIButton* buttonOfLiked;
 @property (nonatomic, strong)UILabel* labelOfLiked;
-- (void)configureWithCommentModel:(CommentModel* )model;
+- (void)configureWithCommentModel:(CommentModel *)model compactFirstItem:(BOOL)compactFirstItem;
 - (void)createButtton;
 @end
 

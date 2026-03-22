@@ -20,9 +20,11 @@ static const CGFloat kPlaylistLineSpacing = 14;
 static const CGFloat kPlaylistInteritemSpacing = 14;
 
 static const CGFloat kDownloadButtonCornerRadius = 14;
+static const CGFloat kAddPlaylistButtonSize = 28;
 
 @interface MinePageTableViewCell () <UITableViewDelegate, UITableViewDataSource, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout>
 @property (nonatomic, strong) UILabel *playlistTitleLabel;
+@property (nonatomic, strong) UIButton *addPlaylistButton;
 @property (nonatomic, strong) UIButton *downloadButton;
 @property (nonatomic, strong) UIVisualEffectView *downloadButtonGlassView;
 @property (nonatomic, strong) UIView *downloadHighlightOverlay;
@@ -62,6 +64,18 @@ static UIColor *spotifyGreen(void) {
   _playlistTitleLabel.textColor = [UIColor whiteColor];
   [self.contentView addSubview:_playlistTitleLabel];
 
+  _addPlaylistButton = [UIButton buttonWithType:UIButtonTypeSystem];
+  UIImageSymbolConfiguration *sym = [UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightSemibold];
+  UIImage *plusImage = [UIImage systemImageNamed:@"plus" withConfiguration:sym];
+  [_addPlaylistButton setImage:plusImage forState:UIControlStateNormal];
+  _addPlaylistButton.tintColor = [UIColor whiteColor];
+  _addPlaylistButton.backgroundColor = [UIColor colorWithWhite:1 alpha:0.14];
+  _addPlaylistButton.layer.cornerRadius = kAddPlaylistButtonSize * 0.5;
+  _addPlaylistButton.layer.masksToBounds = YES;
+  _addPlaylistButton.accessibilityLabel = @"添加收藏歌单";
+  [_addPlaylistButton addTarget:self action:@selector(addPlaylistButtonTapped) forControlEvents:UIControlEventTouchUpInside];
+  [self.contentView addSubview:_addPlaylistButton];
+
   UICollectionViewFlowLayout *layout = [[UICollectionViewFlowLayout alloc] init];
   layout.scrollDirection = UICollectionViewScrollDirectionHorizontal;
   layout.minimumLineSpacing = kPlaylistLineSpacing;
@@ -82,6 +96,12 @@ static UIColor *spotifyGreen(void) {
     make.left.equalTo(self.contentView).offset(20);
     make.top.equalTo(self.contentView).offset(12);
     make.height.mas_equalTo(24);
+    make.right.lessThanOrEqualTo(_addPlaylistButton.mas_left).offset(-10);
+  }];
+  [_addPlaylistButton mas_makeConstraints:^(MASConstraintMaker *make) {
+    make.right.equalTo(self.contentView).offset(-20);
+    make.centerY.equalTo(_playlistTitleLabel);
+    make.width.height.mas_equalTo(kAddPlaylistButtonSize);
   }];
   [_collectionView mas_makeConstraints:^(MASConstraintMaker *make) {
     make.left.equalTo(self.contentView).offset(20);
@@ -149,6 +169,12 @@ static UIColor *spotifyGreen(void) {
       gradient.frame = _downloadHighlightOverlay.bounds;
       gradient.cornerRadius = kDownloadButtonCornerRadius;
     }
+  }
+}
+
+- (void)addPlaylistButtonTapped {
+  if (self.addPlaylistButtonBlock) {
+    self.addPlaylistButtonBlock();
   }
 }
 

@@ -21,16 +21,16 @@
 #import "MusicPlayerController.h"
 #import "PLaylistManager.h"
 #import "SongPlayingModel.h"
-@interface SearchPageController ()<UICollectionViewDelegate, UICollectionViewDataSource, MyCollectionViewLayoutDelegate, UITableViewDelegate, UITableViewDataSource, UIGestureRecognizerDelegate>
+
+@interface SearchPageController ()<UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDataSourcePrefetching, MyCollectionViewLayoutDelegate, UITableViewDelegate, UITableViewDataSource, UIGestureRecognizerDelegate>
 
 @property (nonatomic,strong) SearchPageView *myView;
 @property (nonatomic,strong) SpotifyService *service;
 @property (nonatomic,strong) NSMutableArray *mutableArrayOfSongs;
 @property (nonatomic, strong) NSMutableArray* searchResultSongs;
-@property (nonatomic,assign) NSInteger page;
 @property (nonatomic,assign) BOOL isLoading;
 @property (nonatomic,assign) BOOL hasMore;
-@property (nonatomic, assign)NSInteger index;
+@property (nonatomic, assign) NSInteger index;
 @property (nonatomic, strong) NSTimer *searchTimer;
 @end
 
@@ -42,7 +42,6 @@
   self.service = [SpotifyService sharedInstance];
   self.mutableArrayOfSongs = [NSMutableArray array];
   self.searchResultSongs = [NSMutableArray array];
-  self.page = 1;
   self.hasMore = YES;
   self.isLoading = NO;
   [self setUpUI];
@@ -186,42 +185,97 @@
 - (void)fetchCurrentPageData {
   if (self.isLoading || !self.hasMore) return;
   self.isLoading = YES;
+  NSInteger requestedLimit = self.index;
   __weak typeof(self) weakSelf = self;
   [self.service fetchSomeSongsWithIndex:self.index withCompletion:^(NSMutableArray * _Nonnull arrayOfSongs, NSError * _Nonnull error) {
-    if (weakSelf.page == 1) {
-      [weakSelf.mutableArrayOfSongs removeAllObjects];
-    }
-    [weakSelf.mutableArrayOfSongs removeAllObjects];
-    [weakSelf.mutableArrayOfSongs addObjectsFromArray:arrayOfSongs];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      __strong typeof(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf) return;
 
-    if (arrayOfSongs.count == 0) {
-      weakSelf.hasMore = NO;
-    }
+      if (error || !arrayOfSongs) {
+        strongSelf.isLoading = NO;
+        return;
+      }
 
-    weakSelf.isLoading = NO;
-    self.index += 15;
-    //    for (RecommendedSongsItemModel* item in  arrayOfSongs) {
-    //      SongModel* songModel = item.song;
-    //      NSInteger index = [self.mutableArrayOfSongs indexOfObject:item];
-    //      NSIndexPath *indexPath = [NSIndexPath indexPathForItem:index inSection:0];
-    //      [self.service fetchCommentsOfSongs:songModel withCompletion:^(NSError * _Nonnull error) {
-    //        if (error) {
-    //          NSLog(@"%@" ,error);
-    //        }
-    //        dispatch_async(dispatch_get_main_queue(), ^{
-    //            [self.myView.collectionView reloadItemsAtIndexPaths:@[indexPath]];
-    //        });
-    //      }];
-    //    }
-    [self.myView.collectionView reloadData];
+      NSInteger oldCount = strongSelf.mutableArrayOfSongs.count;
+      [strongSelf.mutableArrayOfSongs removeAllObjects];
+      [strongSelf.mutableArrayOfSongs addObjectsFromArray:arrayOfSongs];
+      NSInteger newCount = strongSelf.mutableArrayOfSongs.count;
+
+      if (newCount == 0) {
+        strongSelf.hasMore = NO;
+        strongSelf.isLoading = NO;
+        [strongSelf.myView.collectionView reloadData];
+        return;
+      }
+
+      if (oldCount > 0 && newCount <= oldCount) {
+        strongSelf.hasMore = NO;
+        strongSelf.isLoading = NO;
+        [strongSelf.myView.collectionView reloadData];
+        return;
+      }
+
+      if (newCount < requestedLimit) {
+        strongSelf.hasMore = NO;
+      }
+
+      strongSelf.index += 15;
+
+      UICollectionView *cv = strongSelf.myView.collectionView;
+      if (oldCount == 0) {
+        [cv reloadData];
+        strongSelf.isLoading = NO;
+        dispatch_async(dispatch_get_main_queue(), ^{
+          [strongSelf tryLoadMoreIfCollectionViewNearBottom];
+        });
+        return;
+      }
+
+      if (newCount > oldCount) {
+        NSMutableArray<NSIndexPath *> *paths = [NSMutableArray arrayWithCapacity:(NSUInteger)(newCount - oldCount)];
+        for (NSInteger i = oldCount; i < newCount; i++) {
+          [paths addObject:[NSIndexPath indexPathForItem:i inSection:0]];
+        }
+        @try {
+          [cv performBatchUpdates:^{
+            [cv insertItemsAtIndexPaths:paths];
+          } completion:^(BOOL finished) {
+            strongSelf.isLoading = NO;
+            if (finished) {
+              [strongSelf tryLoadMoreIfCollectionViewNearBottom];
+            }
+          }];
+        } @catch (__unused NSException *ex) {
+          [cv reloadData];
+          strongSelf.isLoading = NO;
+        }
+      } else {
+        [cv reloadData];
+        strongSelf.isLoading = NO;
+      }
+    });
   }];
+}
+
+/// 内容仍不足一屏时，用户可能停在底部但收不到 scroll 事件，补一次加载
+- (void)tryLoadMoreIfCollectionViewNearBottom {
+  UIScrollView *scrollView = self.myView.collectionView;
+  CGFloat offsetY = scrollView.contentOffset.y;
+  CGFloat contentHeight = scrollView.contentSize.height;
+  CGFloat height = scrollView.bounds.size.height;
+  if (contentHeight <= 0 || height <= 0) return;
+  CGFloat preloadDistance = MAX(height * 1.2, 420);
+  BOOL nearBottom = offsetY > contentHeight - height - preloadDistance;
+  if (nearBottom && !self.isLoading && self.hasMore) {
+    [self loadMoreData];
+  }
 }
 
 - (void)loadMoreData {
   if (self.isLoading || !self.hasMore) {
     return;
   }
-  self.page++;
   [self fetchCurrentPageData];
 }
 
@@ -237,6 +291,8 @@
   self.myView.collectionView.delegate = self;
   self.myView.collectionView.dataSource = self;
   [self.myView.collectionView registerClass:[MyCollectionViewCell class] forCellWithReuseIdentifier:@"cell01"];
+  self.myView.collectionView.prefetchingEnabled = YES;
+  self.myView.collectionView.prefetchDataSource = self;
   UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissMyKeyboard)];
   tap.cancelsTouchesInView = NO;
   tap.delegate = self;
@@ -244,13 +300,43 @@
 }
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+  if (scrollView != self.myView.collectionView) {
+    return;
+  }
   CGFloat offsetY = scrollView.contentOffset.y;
   CGFloat contentHeight = scrollView.contentSize.height;
   CGFloat height = scrollView.bounds.size.height;
-
-  if (offsetY > contentHeight - height - 150) {
-    NSLog(@"刷新新一页的数据");
+  if (contentHeight <= 0 || height <= 0) {
+    return;
+  }
+  /// 距底部约一屏时预加载；isLoading 在请求完成前保持 YES，避免重复触发
+  CGFloat preloadDistance = MAX(height * 1.2, 420);
+  BOOL nearBottom = offsetY > contentHeight - height - preloadDistance;
+  if (nearBottom && !self.isLoading && self.hasMore) {
     [self loadMoreData];
+  }
+}
+
+#pragma mark - UICollectionViewDataSourcePrefetching
+
+- (void)collectionView:(UICollectionView *)collectionView prefetchItemsAtIndexPaths:(NSArray<NSIndexPath *> *)indexPaths {
+  NSMutableArray<NSURL *> *urls = [NSMutableArray array];
+  for (NSIndexPath *indexPath in indexPaths) {
+    if (indexPath.item >= (NSInteger)self.mutableArrayOfSongs.count) continue;
+    RecommendedSongsItemModel *item = self.mutableArrayOfSongs[indexPath.item];
+    SongModel *song = item.song;
+    if (song.album.picUrl.length) {
+      NSURL *u = [NSURL URLWithString:song.album.picUrl];
+      if (u) [urls addObject:u];
+    }
+    CommentModel *cm = song.comments;
+    if (cm && cm.user.avatarUrl.length) {
+      NSURL *u = [NSURL URLWithString:cm.user.avatarUrl];
+      if (u) [urls addObject:u];
+    }
+  }
+  if (urls.count) {
+    [[SDWebImagePrefetcher sharedImagePrefetcher] prefetchURLs:urls];
   }
 }
 
@@ -260,9 +346,8 @@
 
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
   MyCollectionViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"cell01"  forIndexPath:indexPath];
-  cell.layer.masksToBounds = YES;
-  cell.layer.cornerRadius = 10;
-  cell.backgroundColor = [UIColor colorWithRed:41/225.0f green:42/225.0f blue:60/225.0f alpha:0.8];
+  cell.backgroundColor = [UIColor clearColor];
+  cell.layer.masksToBounds = NO;
   RecommendedSongsItemModel *item = self.mutableArrayOfSongs[indexPath.row];
   SongModel *songModel = item.song;
   AlbumModel *albumModel = songModel.album;
@@ -270,7 +355,7 @@
   SDImageResizingTransformer *transformer =
   [SDImageResizingTransformer transformerWithSize:CGSizeMake(200, 200)  scaleMode:SDImageScaleModeAspectFill];
   NSLog(@"歌曲评论属性添加成功:%@, 点赞数：%ld", songModel.comments.content, songModel.comments.likedCount);
-  [cell configureWithCommentModel:songModel.comments];
+  [cell configureWithCommentModel:songModel.comments compactFirstItem:(indexPath.item == 0)];
   [cell.headerView sd_setImageWithURL:[NSURL URLWithString:user.avatarUrl] placeholderImage:nil options:SDWebImageScaleDownLargeImages context:@{
     SDWebImageContextImageTransformer: transformer
   }];
@@ -330,11 +415,19 @@
 
 
 - (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)layout heightForItemAtIndexPath:(NSIndexPath *)indexPath itemWidth:(CGFloat)width {
-  if (indexPath.row == 1) {
-    return 200;
-  } else {
-    return 350;
+  // 与 MyCollectionViewCell：封面左右贴满 cell，高 = 宽（正方形）
+  CGFloat imageBlockH = width;
+  CGFloat textTop = 4;
+  CGFloat textGap = 4;
+  CGFloat userRowH = 18;
+  CGFloat bottomInset = 5;
+  CGFloat footerPadding = textTop + textGap + userRowH + bottomInset;
+  if (indexPath.item == 0) {
+    CGFloat textBlockH = 16;
+    return imageBlockH + textBlockH + footerPadding;
   }
+  CGFloat textBlockH = 34;
+  return imageBlockH + textBlockH + footerPadding;
 }
 
 - (void)dismissMyKeyboard {

@@ -17,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy) void (^buttonClickBlock)(UIButton *);
 @property (nonatomic, copy) void (^downloadButtonBlock)(void);
 @property (nonatomic, copy) void (^cacheSongButtonBlock)(void);
+@property (nonatomic, copy) void (^addPlaylistButtonBlock)(void);
 - (void)configWithSongs:(NSArray<SongModel *> *)songs;
 @end
 

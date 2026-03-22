@@ -139,6 +139,9 @@
   [self.navigationController pushViewController:vc animated:YES];
 }
 
+- (void)handleAddPlaylistTapped {
+}
+
 
 
 - (void)setupData {
@@ -198,6 +201,10 @@
     };
     cell.cacheSongButtonBlock = ^{
       [self jumpToPlayerViewController];
+    };
+    cell.addPlaylistButtonBlock = ^{
+      __strong typeof(weakSelf) strongSelf = weakSelf;
+      if (strongSelf) [strongSelf handleAddPlaylistTapped];
     };
     cell.localSongArray = self.localSongArray ?: [NSMutableArray array];
     return cell;
